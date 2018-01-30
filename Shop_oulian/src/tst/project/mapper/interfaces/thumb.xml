@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+ <mapper namespace="tst.project.dao.interfaces.ThumbDao">
+ 	<!-- 添加点赞 -->
+	<insert id="insertThumb" parameterType="thumbBean" useGeneratedKeys="true" keyProperty="thumb_id">
+		insert into bbs_thumb(member_id,relation_id)
+		values(#{member_id},#{relation_id})
+	</insert>
+
+    <!-- 取消点赞 -->	
+	<update id="updateThumb" parameterType="thumbBean">
+		 update bbs_thumb set thumb_state = 1 where relation_id =#{relation_id} and member_id=#{member_id} 
+	</update>
+	
+	<!-- 查询是否点赞 0-点赞  1-未点赞 -->
+	<select id="getThumbBySearch"  parameterType="thumbBean" resultType="thumbBean">
+	    select * from bbs_thumb where member_id=#{member_id} and relation_id=#{relation_id}
+	     and  thumb_state='0'
+	</select>
+	
+	<!-- 查询是否点赞,返回状态值 -->
+	<select id="getStateByThumb"  parameterType="thumbBean" resultType="thumbBean">
+	   select *  from bbs_thumb where member_id=#{member_id} and relation_id=#{relation_id}
+	order by creat_time desc limit 1
+	     
+	</select>
+ </mapper>

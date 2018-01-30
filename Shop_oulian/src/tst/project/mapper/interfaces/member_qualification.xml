@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tst.project.dao.interfaces.MemberQualificationDao">
+
+	<select id="getQualificationByCode" parameterType="memberBean" resultType="memberBean">
+		select * from tst_member
+		where invise_no=#{invise_no} and is_delete='0'
+		limit 0,1
+	</select>
+    <!-- 查询用户资质认证 -->
+	<select id="getMemberQualification" parameterType="memberQualificationBean" resultType="memberQualificationBean">
+	    select * from tst_member_qualification 
+	    where member_id=#{member_id} and is_delete='0'
+	</select>
+	
+	<!-- 查询公司资质认证是否已被添加 -->
+	<select id="getCompanyIsHave" parameterType="memberQualificationBean" resultType="memberQualificationBean">
+	    select * from tst_member_qualification
+	    where company_name=#{company_name}
+	    and business_license_number=#{business_license_number}
+	    and organization_code=#{organization_code}
+	</select>
+	
+	<!-- 添加资质认证 -->
+	<insert id="addMemberQualification" parameterType="memberQualificationBean" useGeneratedKeys="true" keyProperty="member_qualification_id">
+	    insert into tst_member_qualification
+	    <trim prefix="(" suffix=")" suffixOverrides=",">
+           <if test="member_id!= null and member_id!=''">
+              member_id,
+           </if>
+           <if test="company_name!= null and company_name!=''">
+              company_name,
+           </if>
+           <if test="business_license_number!= null and business_license_number!=''">
+              business_license_number,
+           </if>
+           <if test="organization_code!=null and organization_code!=''">
+              organization_code,
+           </if>
+           <if test="legal_person_name!= null and legal_person_name!=''">
+              legal_person_name,
+           </if>
+           <if test="legal_person_sex!= null and legal_person_sex!=''">
+              legal_person_sex,
+           </if>
+           <if test="qualification_state!= null and qualification_state!=''">
+              qualification_state,
+           </if>
+           <if test="is_delete!= null and is_delete!=''">
+              is_delete,
+           </if>
+           <if test="create_time!= null and create_time!=''">
+              create_time,
+           </if>
+           <if test="pdf_url!= null and pdf_url!=''">
+              pdf_url,
+           </if>
+       </trim>
+       <trim prefix="values (" suffix=")" suffixOverrides=",">
+           <if test="member_id!= null and member_id!=''">
+              #{member_id},
+           </if>
+           <if test="company_name!= null and company_name!=''">
+              #{company_name},
+           </if>
+           <if test="business_license_number!= null and business_license_number!=''">
+              #{business_license_number},
+           </if>
+           <if test="organization_code!=null and organization_code!=''">
+              #{organization_code},
+           </if>
+           <if test="legal_person_name!= null and legal_person_name!=''">
+              #{legal_person_name},
+           </if>
+           <if test="legal_person_sex!= null and legal_person_sex!=''">
+              #{legal_person_sex},
+           </if>
+           <if test="qualification_state!= null and qualification_state!=''">
+              #{qualification_state},
+           </if>
+           <if test="is_delete!= null and is_delete!=''">
+              #{is_delete},
+           </if>
+           <if test="create_time!= null and create_time!=''">
+              #{create_time},
+           </if>
+           <if test="pdf_url!= null and pdf_url!=''">
+              #{pdf_url},
+           </if>
+       </trim>
+	</insert>
+	
+	<!-- 修改资质认证 -->
+	<update id="updateMemberQualification" parameterType="memberQualificationBean">
+	     update tst_member_qualification
+	     <set>
+	       <if test="company_name!= null and company_name!=''">
+              company_name=#{company_name},
+           </if>
+           <if test="business_license_number!= null and business_license_number!=''">
+              business_license_number=#{business_license_number},
+           </if>
+           <if test="organization_code!=null and organization_code!=''">
+              organization_code=#{organization_code},
+           </if>
+           <if test="legal_person_name!= null and legal_person_name!=''">
+              legal_person_name=#{legal_person_name},
+           </if>
+           <if test="legal_person_sex!= null and legal_person_sex!=''">
+              legal_person_sex=#{legal_person_sex},
+           </if>
+           <if test="qualification_state!= null and qualification_state!=''">
+              qualification_state=#{qualification_state},
+           </if>
+           <if test="is_delete!= null and is_delete!=''">
+              is_delete=#{is_delete},
+           </if>
+           <if test="create_time!= null and create_time!=''">
+              create_time=#{create_time},
+           </if>
+           <if test="pdf_url!= null and pdf_url!=''">
+              pdf_url=#{pdf_url},
+           </if>
+	     </set>
+	     where member_qualification_id=#{member_qualification_id}
+	</update>
+</mapper>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tst.project.dao.interfaces.SearchTopicHistoryDao">
+
+    <!-- 查询搜索历史 -->
+    <select id="getSearchHistory" parameterType="memberSearchHistoryBean" resultType="memberSearchHistoryBean">
+          select * from tst_member_search_history where member_id=#{member_id} and is_delete='0'
+          order by create_time desc limit 0,10
+    </select>
+    
+    <!-- 记录搜索历史 -->
+    <insert id="addSearchTopicHistory" parameterType="searchTopicHistoryBean" >
+	     insert into bbs_topic_search_history
+	     (search_name,create_time)
+	     values(#{search_name},NOW())
+    </insert>
+	
+	<!-- 清除搜索历史 -->
+	<update id="removeSearchHistory" parameterType="memberSearchHistoryBean">
+	      update tst_member_search_history set is_delete='1'
+	      where member_id=#{member_id}
+	</update>
+</mapper>

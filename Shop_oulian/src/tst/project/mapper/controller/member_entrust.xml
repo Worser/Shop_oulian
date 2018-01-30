@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tst.project.dao.controller.MemberEntrustDaoC">
+	
+	<!-- 查询委托信息 -->
+	<select id="getMemberEntrustList" parameterType="memberBean" resultType="memberEntrustBean">
+	    select a.*,b.company_name,b.member_level from tst_member_entrust a
+		left join tst_member b
+		on a.member_id = b.member_id and b.is_delete='0'
+		where 
+		<if test="member_account!=null and member_account!=''">
+		    b.member_account=#{member_account} and
+		</if>
+		<if test="company_name!=null and company_name!=''">
+		    b.company_name like concat('%',#{company_name},'%') and
+		</if>
+		<if test="member_level!=null and member_level!=''">
+		    b.member_level=#{member_level} and
+		</if>
+		a.is_delete='0'
+		order by a.create_time desc
+	</select>
+	
+	<!-- 修改委托状态 ，接受/拒绝 -->
+	<update id="updateEntrustState" parameterType="memberEntrustBean">
+	    update tst_member_entrust set entrust_state=#{entrust_state}
+	    <if test="entrust_state!=null and entrust_state!='' and entrust_state=='accept'">
+	        ,accept_time=NOW()
+	    </if>
+	    where member_entrust_id=#{member_entrust_id}
+	</update>
+	
+	<!-- 查询委托信息 -->
+	<select id="exportMemberEntrustExcel" parameterType="memberBean" resultType="memberEntrustBean">
+	    select a.*,b.company_name,b.member_level from tst_member_entrust a
+		left join tst_member b
+		on a.member_id = b.member_id
+		where 
+		<if test="member_account!=null and member_account!=''">
+		    b.member_account=#{member_account} and
+		</if>
+		<if test="company_name!=null and company_name!=''">
+		    b.company_name like concat('%',#{company_name},'%') and
+		</if>
+		<if test="member_level!=null and member_level!=''">
+		    b.member_level=#{member_level} and
+		</if>
+		b.is_delete='0'
+		order by a.create_time desc
+	</select>
+</mapper>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tst.project.dao.controller.AdviceDaoC">
+	
+	<!-- 查询意见反馈 -->
+	<select id="getMemberAdvice" parameterType="adviceBean" resultType="adviceBean">
+	    select a.*,b.company_name from tst_advice a
+		left join tst_member b
+		on a.member_id = b.member_id
+		where a.is_delete='0'
+		<if test="advice_type!=null and advice_type!=''">
+		   and a.advice_type=#{advice_type}
+		</if>
+		<if test="company_name!=null and company_name!=''">
+		   and b.company_name like concat('%',#{company_name},'%')	
+		</if>
+		order by a.create_time desc
+	</select>
+	
+</mapper>

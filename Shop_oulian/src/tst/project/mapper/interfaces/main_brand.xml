@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tst.project.dao.interfaces.MainBrandDao">
+
+	<!-- 查询主营品牌 -->
+	<select id="getMainBrandList" parameterType="mainBrandBean" resultType="mainBrandBean">
+	    select * from tst_main_brand where member_id=#{member_id} and is_delete='0'
+	</select>
+	
+	<!-- 添加主营品牌 -->
+	<insert id="addMainBrand" parameterType="mainBrandBean">
+	    insert into tst_main_brand(member_id,main_brand,is_delete,create_time)
+        values(#{member_id},#{main_brand},#{is_delete},NOW())
+	</insert>
+	
+	<!-- 删除主营品牌 -->
+	<update id="deleteMainBrand" parameterType="mainBrandBean">
+	    update tst_main_brand set is_delete='1'
+	    where 
+	      <if test="main_id!=null and main_id!=''">
+	           main_id=#{main_id}
+	      </if>
+	      <if test="member_id!=null and member_id!=''">
+	           member_id=#{member_id}
+	      </if>
+	</update>
+	
+</mapper>

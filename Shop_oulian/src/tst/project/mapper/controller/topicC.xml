@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tst.project.dao.controller.TopicDaoC">
+	<!-- 获得所有帖子 -->
+	<select id="getAllTopics" parameterType="topicBean" resultType="topicBean">
+		select a.*,b.blockName,m.phone,m.member_level,
+ 		m.register_assress,m.merchants_id,m.register_phone,m.head_path,m.company_remark,m.company_name
+ 		from bbs_topic a 
+		left join tst_member m 
+		on a.member_id = m.member_id 
+		left join bbs_block b
+		on b.id = a.blockId
+		where  1=1 
+		<if test="company_name!=null and company_name!=''">
+	       and  m.company_name like concat('%',#{company_name},'%') 
+	    </if>
+	    <if test="topicTitle!=null and topicTitle!=''">
+	      and  a.topicTitle like concat('%',#{topicTitle},'%')
+	    </if> 
+	    <if test="blockId !=null and blockId !=''">
+	      and  a.blockId = #{blockId} 
+	    </if>
+		 <if test='sort_type !=null and sort_type != "" and sort_type=="1"'>
+			order by topicCreateTime desc
+		</if>
+		<if test='sort_type !=null and sort_type != "" and sort_type=="2"'>
+			order by topicCreateTime asc
+		</if> 
+		<if test='sort_type !=null and sort_type != "" and sort_type=="3"'>
+			order by topicCommentCount desc
+		</if>
+		<if test='sort_type !=null and sort_type != "" and sort_type=="4"'>
+			order by topicCommentCount asc
+		</if> 
+		<if test='sort_type !=null and sort_type != "" and sort_type=="5"'>
+			order by searchTopicCount desc
+		</if>
+		<if test='sort_type !=null and sort_type != "" and sort_type=="6"'>
+			order by searchTopicCount asc
+		</if> 
+		<if test='sort_type !=null and sort_type != "" and sort_type=="7"'>
+			order by thumb_count desc
+		</if>
+		<if test='sort_type !=null and sort_type != "" and sort_type=="8"'>
+			order by thumb_count asc
+		</if>
+		<if test='sort_type !=null and sort_type != "" and sort_type=="9"'>
+			order by topicCollectionCount desc
+		</if>
+		<if test='sort_type !=null and sort_type != "" and sort_type=="10"'>
+			order by topicCollectionCount asc
+		</if>  
+	</select>
+	<!-- 删除或恢复帖子 -->
+	<update id="deleteTopic" parameterType="topicBean">
+		update bbs_topic set is_delete=#{is_delete}
+		where id=#{id}
+	</update>
+	<!-- 单个帖子详情 -->
+	<select id="getTopicDetail" parameterType="topicBean" resultType="topicBean">
+	select a.*,b.blockName,m.phone,l.level_name,m.email_account,
+ 		m.register_assress,m.merchants_id,m.register_phone,
+ 		m.head_path,m.company_remark,m.company_name
+ 		from bbs_topic a 
+		join tst_member m 
+		on a.member_id = m.member_id 
+		join bbs_block b
+		on b.id = a.blockId
+		join tst_member_level l 
+		on l.level_id = m.member_level
+		where a.id=#{id}
+		and a.topic_state = '0'
+	</select>
+	<!-- 获得单个帖子评论详情 -->
+	<select id="getTopicComments" parameterType="commentBean" resultType="commentBean">
+	select a.*,b.company_name,b.company_remark,l.level_name,b.head_path 
+		from bbs_comment a 
+	   	join tst_member b
+	   	on a.member_id = b.member_id 
+	  	join tst_member_level l 
+	    on b.member_level = l.level_id 
+	    where a.id = #{id}
+	    order by a.commentTime desc
+	</select>
+	<!-- 查询某个评论的所有回复 -->
+ 	<select id="getCommentReplys" parameterType="replyBean" resultType="replyBean">
+ 		select a.*,b.company_name,b.company_remark as member_name,
+ 		c.company_name as to_member_name,c.company_remark as to_member_remark
+		from bbs_reply a 
+		join tst_member b
+		on a.member_id = b.member_id
+		join tst_member c 
+		on a.to_member_id = c.member_id
+		where a.comment_id = #{comment_id}
+		and a.is_delete='0'
+		order by replyTime asc
+ 	</select>
+	<!-- 删除某个评论 -->
+	<update id="deleteComment" parameterType="commentBean">
+		update bbs_comment set is_delete=#{is_delete}
+		where comment_id=#{comment_id}
+	</update>
+	<!-- 修改帖子详情:1.设置帖子为精品 -->
+	<update id="updateTopicDetail" parameterType="topicBean">
+		update bbs_topic set id=id
+		<if test=' topicType != null and topicType != "" '>
+			,topicType=#{topicType}
+		</if>
+		where id=#{id}
+	</update>
+</mapper>

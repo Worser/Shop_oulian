@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tst.project.dao.controller.LogRecordDaoC">
+	
+	<!-- 获得纪录 -->
+	<select id="getLogRecordBeans" parameterType="logRecordBean" resultType="logRecordBean">
+	   select a.record_id,a.record_name,a.record_type,a.create_time,b.company_name from tst_log_record a
+		left join tst_member b
+		on a.member_id = b.member_id
+		where a.is_delete='0'
+		<if test="record_type!=null and record_type!=''">
+		  and record_type=#{record_type}
+		</if>
+		<if test="company_name!=null and company_name!=''">
+		  and company_name like CONCAT('%',#{company_name},'%')
+		</if>
+		<if test="record_name!=null and record_name!=''">
+		  and record_name like CONCAT('%',#{record_name},'%')
+		</if>
+		order by a.create_time desc
+	</select>
+	
+	<!-- 导出记录 -->
+	<select id="ExportLogRecordBeans" parameterType="logRecordBean" resultType="logRecordBean">
+	    select a.record_id,a.record_name,a.record_type,a.create_time,b.company_name from tst_log_record a
+		left join tst_member b
+		on a.member_id = b.member_id
+		where a.is_delete='0'
+	</select>
+	
+	<!-- 批量删除 -->
+	<update id="batchDelete" parameterType="logRecordBean">
+	     update tst_log_record set is_delete='1'
+	     where find_in_set(record_id,#{record_ids})
+	</update>
+	
+	<!-- 全部删除 -->
+	<update id="allDelete" parameterType="logRecordBean">
+	     update tst_log_record set is_delete='1'
+	     where 1=1
+	</update>
+	
+</mapper>
