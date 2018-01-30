@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tst.project.dao.interfaces.EnterpriseAdvantageDao">
+
+    <!-- 查询企业优势 -->
+	<select id="getEnterpriseAdvantageList" parameterType="enterpriseAdvantageBean" resultType="enterpriseAdvantageBean">
+	    select * from tst_enterprise_advantage where member_id=#{member_id} and is_delete='0'
+	</select>
+	
+	<!-- 添加企业优势 -->
+	<insert id="addEnterpriseAdvantage" parameterType="enterpriseAdvantageBean">
+	    insert into tst_enterprise_advantage(member_id,advantage_name,is_delete,create_time)
+        values(#{member_id},#{advantage_name},#{is_delete},NOW())
+	</insert>
+	
+	<!-- 删除企业优势 -->
+	<update id="deleteEnterpriseAdvantage" parameterType="enterpriseAdvantageBean">
+	    update tst_enterprise_advantage set is_delete='1'
+	    where 
+	       <if test="advantage_id!=null and advantage_id!=''">
+	           advantage_id=#{advantage_id}
+	       </if>
+	       <if test="member_id!=null and member_id!=''">
+	           member_id=#{member_id}
+	       </if>
+	</update>
+	
+</mapper>

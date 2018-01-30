@@ -1,0 +1,375 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+ <mapper namespace="tst.project.dao.interfaces.TopicDao">
+ 	<!-- 更新帖子 -->
+ 	<update id="updateTopic" parameterType="topicBean">
+ 		update bbs_topic 
+ 		set blockId = #{blockId},
+ 			member_id  =#{member_id},
+ 			topicTitle = #{topicTitle},
+ 			topicContent = #{topicContent},
+ 			topicCreateTime = #{topicCreateTime},
+ 			is_Delete = #{is_Delete}
+ 	</update>
+ 	<!-- 添加帖子 -->
+ 	<insert id="addTopic" parameterType="topicBean">
+ 		insert into bbs_topic (blockId,topicTitle,topicContent,member_id
+ 		<if test=' topicContentText != null and topicContentText != "" '>
+				,topicContentText
+			</if>)
+ 		values (#{blockId},#{topicTitle},#{topicContent},#{member_id}
+ 		<if test=' topicContentText != null and topicContentText != "" '>
+				,#{topicContentText}
+			</if>)
+ 		<!-- insert into bbs_topic(blockId,topicTitle,topicContent,member_id)
+ 		value(#{blockId},#{topicTitle},#{topicContent},#{member_id}) -->
+ 	</insert>
+ 	<!-- 默认帖子 -->
+ 	<select id="getTopic" parameterType="topicBean" resultType="topicBean">
+ 		select a.*,b.blockName,m.email_account,m.phone,m.member_level,
+ 		m.register_assress,m.merchants_id,m.register_phone,m.head_path,m.company_remark,m.company_name from bbs_topic a 
+		join tst_member m 
+		on a.member_id = m.member_id 
+		join bbs_block b
+		on b.id = a.blockId
+		where 1=1 and a.is_delete='0' 
+		and a.topic_state = '0'
+		order by a.topicViewCount desc
+ 	</select>
+ 	<!-- 最新帖 -->
+ 	<select id="getRecentTopic" parameterType="topicBean" resultType="topicBean">
+ 		select  t.* ,m.company_remark,m.company_name,b.blockName,
+ 		m.email_account,m.phone,m.member_level,
+ 		m.register_assress,m.merchants_id,m.register_phone,m.head_path
+ 		 from bbs_topic t 
+		 join tst_member m  
+		 on t.member_id = m.member_id
+		 join bbs_block b
+		 on b.id = t.blockId
+		 order by topicCreateTime desc
+ 	</select>
+ 	<!-- 修改帖子点击数 -->
+ 	<update id="updateTopicDetail" parameterType="topicBean">
+ 		update bbs_topic
+ 		set topicViewCount = topicViewCount+1
+ 		where id = #{id}
+ 		and is_delete='0'
+ 	</update>
+ 	<!-- 某个版块中的热门帖子 -->
+ 	<select id="getBlockAllTopics" parameterType="topicBean" resultType="topicBean">
+ 		select t.*,m.company_name,m.company_remark,b.blockName from 
+ 		bbs_topic t
+		join bbs_block b 
+		on b.id = t.blockId 
+		join tst_member m
+		on t.member_id = m.member_id
+		where t.blockId=#{blockId}
+		and t.is_delete='0' and t.topic_state='0'
+		order by t.topicViewCount desc
+ 	</select>
+ 	<!-- 板块中的最新帖子 -->
+ 	<select id="getRecentTopicsByBlock" parameterType="topicBean" resultType="topicBean">
+ 		select  t.* ,m.company_remark,b.blockName from 
+ 		bbs_topic t 
+		join tst_member m  
+		on t.member_id = m.member_id
+		join bbs_block b 
+		on b.id = t.blockId 
+		where t.blockId=#{blockId}
+		order by t.topicCreateTime desc
+ 	</select>
+ 	<!-- 板块中的精品帖子 -->
+ 	<select id="getEssenceTopicByBlock" parameterType="topicBean" resultType="topicBean">
+ 		select t.*,m.company_remark,b.blockName from 
+ 		bbs_topic t 
+ 		join tst_member m 
+ 		on t.member_id = m.member_id 
+ 		join bbs_block b 
+		on b.id = t.blockId 
+ 		where t.topicType='2'
+ 		and t.blockId=#{blockId}
+ 		and t.is_delete='0'
+ 		and t.topic_state='0'
+ 	</select>
+ 	<!-- 获得帖子详情 -->
+ 	<select id="getTopicDetail" parameterType="topicBean" resultType="topicBean">
+ 		select t.*,m.company_name,m.company_remark,m.enterprise_remark,l.level_name,b.blockName ,
+		m.phone,m.register_assress,m.email_account
+ 		from bbs_topic t 
+		join tst_member m 
+		on t.member_id = m.member_id
+		left join tst_member_level l 
+		on m.member_level = l.level_id
+		left join bbs_block b 
+		on t.blockId = b.id 
+		 where t.id=#{id}
+		 and t.is_Delete='0'
+		 and t.topic_state='0'
+  	</select>
+ 	<!-- 精品帖 -->
+ 	<select id="getEssenceTopic" parameterType="topicBean" resultType="topicBean">
+ 		select t.*,m.company_remark,m.company_name,b.blockName,
+ 		m.email_account,m.phone,m.member_level,
+ 		m.register_assress,m.merchants_id,m.register_phone,m.head_path
+ 		from bbs_topic t 
+ 		join tst_member m 
+ 		on t.member_id = m.member_id
+ 		join bbs_block b
+ 		on b.id = t.blockId 
+ 		where t.topicType='2'
+ 		and t.is_delete='0'
+ 		and t.topic_state='0'
+ 	</select>
+ 	<!-- 热门贴 -->
+ 	<select id="getHotTopics" parameterType="topicBean" resultType="topicBean">
+ 		select t.*,m.company_remark,m.company_name,b.blockName 
+ 		from bbs_topic t 
+ 		join tst_member m
+		on t.member_id = m.member_id 
+		join bbs_block b
+		on b.id = t.blockId
+		and t.is_delete='0'
+ 		and t.topic_state='0'
+		order by topicCommentCount desc
+ 	</select>
+ 	<!-- 帖子总数 -->
+ 	<select id="getAmount" parameterType="topicBean" resultType="int">
+ 		select count(*) from bbs_topic
+ 	</select>
+ 	<!-- 更新点赞数 -->
+ 	<update id="updateThumbCount" parameterType="topicBean">
+ 		update bbs_topic set
+	    <if test="update_type!=null and update_type!='' and update_type=='add'">
+	       thumb_count=thumb_count+1
+	    </if>
+	    <if test="update_type!=null and update_type!='' and update_type=='subtract'">
+	       thumb_count=thumb_count-1
+	    </if>
+	    where id=#{id}
+	    and is_delete='0'
+ 	</update>
+ 	<!-- 更新评论总数 -->
+ 	<update id="updateCommentsCount" parameterType="topicBean">
+ 		update bbs_topic
+ 		set topicCommentCount = topicCommentCount+1
+ 		where id = #{id}
+ 	</update>
+ 	<!-- 更新收藏总数 -->
+ 	<update id="updateCollectionsCount" parameterType="topicBean">
+ 		update bbs_topic set
+	    <if test="update_type!=null and update_type!='' and update_type=='add'">
+	       topicCollectionCount=topicCollectionCount+1
+	    </if>
+	    <if test="update_type!=null and update_type!='' and update_type=='subtract'">
+	       topicCollectionCount=topicCollectionCount-1
+	    </if>
+	    where id=#{id}
+	    and is_delete='0'
+ 	</update>
+ 	<!-- 帖子搜索次数 -->
+ 	<update id="updateSearchTopics" parameterType="topicBean">
+ 		update bbs_topic set searchTopicCount = searchTopicCount+1 
+ 		where id in  
+ 		(select a.id from 
+ 			(select * from bbs_topic where topicTitle like CONCAT('%',#{topicTitle},'%'  )
+ 			) as a 
+ 		) 
+ 	</update>
+ 	<!-- 更新回复总数 -->
+ 	<update id="updateCommentReplyCounts" parameterType="commentBean">
+ 		update bbs_comment
+ 		set commentReplyCount = commentReplyCount+1
+ 		where comment_id = #{comment_id}
+ 		and is_delete='0'
+ 	</update>
+ 	<!-- 添加评论 -->
+ 	<insert id="addTopicComment" parameterType="commentBean">
+ 		insert into bbs_comment (member_id,id,commentContent,comment_floor)
+ 		value(#{member_id},#{id},#{commentContent},#{comment_floor})
+ 	</insert>
+ 	<!-- 获得该帖子评论楼层 -->
+ 	<select id="getTopicCommentFloor" parameterType="commentBean" resultType="commentBean">
+ 		select comment_floor
+ 		     from bbs_comment where 
+ 		     id = #{id} order by comment_floor desc limit 0,1
+ 	</select>
+ 	<!-- 查询评论 -->
+ 	<select id="getCommentBeans" parameterType="commentBean" resultType="commentBean" >
+ 		select a.*,b.company_name,b.company_remark,l.level_name,b.head_path 
+ 		from bbs_comment a 
+	   	join tst_member b
+	   	on a.member_id = b.member_id 
+	  	join tst_member_level l 
+	    on b.member_level = l.level_id 
+	    where a.id = #{id}
+	    and a.is_delete='0'
+	    ORDER BY a.comment_floor asc
+ 	</select>
+ 	<!-- 查询评论详情 -->
+ 	<select id="getCommentBeanDetail" parameterType="commentBean" resultType="commentBean" >
+ 		select a.*,b.company_name from bbs_comment  a 
+		join tst_member b
+		on a.member_id = b.member_id
+		where comment_id = #{comment_id}
+		and a.is_delete = '0'
+	</select>
+	<!-- 添加回复 -->
+	<insert id="addTopicReply" parameterType="replyBean">
+		insert into bbs_reply(member_id,comment_id,to_member_id,replyContent)
+			values(#{member_id},#{comment_id},#{to_member_id},#{replyContent})
+	</insert>
+	<!-- 添加回复的回复 -->
+	<insert id="addToReply" parameterType="toReplyBean">
+		insert into bbs_toreply(member_id,reply_id,to_reply_member_id,toReplyContent)
+			values(#{member_id},#{reply_id},#{to_reply_member_id},#{toReplyContent})
+	</insert>
+ 	<!-- 查询回复 -->
+ 	<select id="getTopicReplyBeans" parameterType="replyBean" resultType="replyBean">
+ 		select a.*,b.company_name,b.company_remark as member_name,c.company_name as to_member_name
+		from bbs_reply a 
+		join tst_member b
+		on a.member_id = b.member_id
+		join tst_member c 
+		on a.to_member_id = c.member_id
+		where a.comment_id = #{comment_id}
+		and a.is_delete='0'
+		order by replyTime asc
+ 	</select>
+ 	<!-- 查询回复下的回复 -->
+ 	<select id="getToReply" parameterType="toReplyBean" resultType="toReplyBean">
+ 		select a.toReplyContent,a.create_time,b.company_name,b.company_remark as member_name,c.company_name as to_member_name
+		from bbs_toreply a 
+		join tst_member b
+		on a.member_id = b.member_id
+		join tst_member c 
+		on a.to_reply_member_id = c.member_id
+		where a.reply_id = #{reply_id}
+		and a.is_delete='0'
+		order by create_time asc
+ 	</select>
+ 	<!-- 我发布的帖子 -->
+ 	<select id="memberTopicBeans" parameterType="topicBean" resultType="topicBean">
+ 		select t.*,c.company_name
+		from bbs_topic t
+		join tst_member c 
+		on t.member_id = c.member_id 
+		where t.member_id = #{member_id}
+		and t.is_delete='0'
+		and t.topic_state = '0'
+ 	</select>
+ 	<!--活跃会员前6 -->
+ 	<select id="getMemberActives" parameterType="topicBean" resultType="topicBean">
+ 		select t.*,l.level_name from (
+		select member_id,count(*)as c from bbs_comment group by member_id
+		union all 
+		select member_id,count(*)as c from bbs_reply group by member_id 
+		union all 
+		select member_id,count(*)as c from bbs_topic group by member_id
+		)
+		 a join tst_member t 
+		 on a.member_id = t.member_id 
+		join tst_member_level l
+		on t.member_level = l.level_id
+		where t.company_remark is not null and t.member_level !=6
+		 GROUP by a.member_id 
+		 order by sum(a.c) desc 
+		 limit 6
+ 	</select>
+ 	<!-- 我参与的帖子 -->
+ 	<select id="getMyPartakeTopics" parameterType="topicBean" resultType="topicBean">
+ 		select u.*,m.company_remark from 
+			(select t.* from bbs_topic t 
+			join bbs_comment c 
+			on t.id = c.id
+			where c.member_id=#{member_id}
+			group by t.id
+			union all
+			select t.* from bbs_topic t join
+			(
+			select c.*,r.member_id as s from bbs_comment c 	
+			join bbs_reply r 
+			on c.comment_id = r.comment_id
+			) a
+			on t.id = a.id
+			where a.s=#{member_id}
+			group by t.id)u
+			join tst_member m 
+			on u.member_id = m.member_id
+ 	</select>
+ 	<!-- 我评论过的帖子 -->
+ 	<select id="getMyCommentTopics" parameterType="topicBean" resultType="topicBean">
+ 		select u.* from 
+			(select t.* from bbs_topic t 
+			join bbs_comment c 
+			on t.id = c.id
+			where c.member_id=#{member_id}
+			group by t.id) u
+			join tst_member m
+			on u.member_id = m.member_id
+ 	</select>
+ 	<!-- 我回复过的帖子 -->
+ 	<select id="getMyReplyTopics" parameterType="topicBean" resultType="topicBean">
+ 		select u.*,m.company_remark from 
+			(select t.* from bbs_topic t join
+			(
+			select c.* from bbs_comment c 	
+			join bbs_reply r 
+			on c.comment_id = r.comment_id
+			) a 
+			on t.id = a.id
+			where a.member_id=#{member_id}
+			group by t.id) u
+			join tst_member m
+			on u.member_id = m.member_id	
+ 	</select>
+ 	<!-- 论坛搜索框 -->
+ 	<select id="getTopicDateList" parameterType="topicBean" resultType="topicBean">
+ 		select t.*,m.company_remark,b.blockName from bbs_topic t 
+		join tst_member m
+		on t.member_id = m.member_id
+		join bbs_block b
+		on t.blockId = b.id
+ 		where topicTitle like CONCAT('%',#{topicTitle},'%')
+ 		order by t.searchTopicCount desc
+ 	</select>
+ 	<!-- 热门搜索 -->
+ 	<select id="getHotSearchTopics" parameterType="topicBean" resultType="topicBean">
+ 		select t.*,b.blockName,m.company_name,m.company_remark from bbs_topic t 
+			join bbs_block b
+			on t.blockId = b.id
+			join tst_member m
+			on t.member_id=m.member_id
+			where  t.is_delete='0'and t.topic_state = '0'
+   		    order by searchTopicCount desc limit 4
+ 	</select>
+ 	<!-- 帖子放入回收站 -->
+ 	<update id="recycleTopic" parameterType="topicBean">
+ 		update bbs_topic set topic_state='1' where id = #{id} and member_id = #{member_id}
+ 	</update>
+ 	<!-- 回收站恢复帖子 -->
+ 	<update id="recoveryTopics" parameterType="topicBean">
+ 		update bbs_topic set topic_state='0' where id = #{id} and member_id = #{member_id}
+ 	</update>
+ 	<!-- 获得回收站列表 -->
+ 	<select id="recycleTopicList" parameterType="topicBean" resultType="topicBean">
+ 		select * from bbs_topic where topic_state ='1' and is_delete='0' and member_id=#{member_id}
+ 	</select>
+ 	<!-- 删除帖子 -->
+ 	<update id="deleteTopic" parameterType="topicBean">
+ 		update bbs_topic set is_delete='1' where id=#{id} and member_id=#{member_id}
+ 	</update>
+ 	<!-- 查询我收藏的帖子 -->
+	<select id="getMyCollections" parameterType="topicBean" resultType="topicBean">
+		select t.*,m.company_name,m.company_remark,c.create_time 
+		from bbs_topic t 
+		join bbs_collection c 
+		on t.id = c.relation_id 
+		join tst_member m 
+		on t.member_id = m.member_id
+		where c.member_id=#{member_id}
+		and t.is_delete='0'
+		and c.collection_state='0'
+	</select>
+ </mapper>

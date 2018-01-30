@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tst.project.dao.controller.CouponDaoC">
+	
+	<insert id="insertCoupon" parameterType="couponBean">
+		insert into tst_coupon
+		(coupon_name,coupon_price,coupon_full_price,coupon_desc
+		,start_time,end_time,coupon_type,create_time,coupon_img)
+		values
+		(#{coupon_name},#{coupon_price},#{coupon_full_price},#{coupon_desc}
+		,#{start_time},#{end_time},#{coupon_type},now(),#{coupon_img})
+	</insert>
+	
+	<update id="updateCoupon" parameterType="couponBean">
+		update tst_coupon
+		set coupon_name=#{coupon_name},coupon_price=#{coupon_price},
+		coupon_full_price=#{coupon_full_price},coupon_desc=#{coupon_desc},
+		start_time=#{start_time},end_time=#{end_time},coupon_img=#{coupon_img}
+		where coupon_id = #{coupon_id}
+	</update>
+
+	<update id="deleteCoupon" parameterType="couponBean">
+		update tst_coupon
+		set is_delete='1'
+		where coupon_id = #{coupon_id}
+	</update>
+	
+	<select id="getCoupons" parameterType="couponBean" resultType="couponBean">
+		select * from tst_coupon
+		where is_delete='0'
+	</select>
+
+	<update id="updateCouponState" parameterType="couponBean">
+		update tst_member_coupon
+		set coupon_state=#{coupon_state}
+		where member_coupon_id=#{member_coupon_id}
+	</update>
+</mapper>

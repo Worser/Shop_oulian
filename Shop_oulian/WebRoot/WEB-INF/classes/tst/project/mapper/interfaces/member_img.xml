@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tst.project.dao.interfaces.MemberImgDao">
+
+    <!-- 查询图片 -->
+	<select id="getMemberImgList" parameterType="memberImgBean" resultType="memberImgBean">
+	    select * from tst_member_img where member_id=#{member_id} 
+	    <if test="img_type!=null and img_type!=''">
+	         and img_type=#{img_type}
+	    </if>
+	    <if test="member_qualification_id!=null and member_qualification_id!=''">
+	         and member_qualification_id=#{member_qualification_id}
+	    </if>
+	    and is_delete='0'
+	</select>
+	
+	<!-- 添加各种图片，需填写图片类型 -->
+	<insert id="addMemberImg" parameterType="memberImgBean">
+	    insert into tst_member_img
+	    <trim prefix="(" suffix=")" suffixOverrides=",">
+           <if test="member_id!= null and member_id!=''">
+              member_id,
+           </if>
+           <if test="member_qualification_id!= null and member_qualification_id!=''">
+              member_qualification_id,
+           </if>
+           <if test="member_img!= null and member_img!=''">
+              member_img,
+           </if>
+           <if test="img_remark!= null and img_remark!=''">
+              img_remark,
+           </if>
+           <if test="img_type!=null and img_type!=''">
+              img_type,
+           </if>
+           <if test="is_delete!= null and is_delete!=''">
+              is_delete,
+           </if>
+           <if test="create_time!= null and create_time!=''">
+              create_time,
+           </if>
+       </trim>
+       <trim prefix="values (" suffix=")" suffixOverrides=",">
+           <if test="member_id!= null and member_id!=''">
+              #{member_id},
+           </if>
+           <if test="member_qualification_id!= null and member_qualification_id!=''">
+              #{member_qualification_id},
+           </if>
+           <if test="member_img!= null and member_img!=''">
+              #{member_img},
+           </if>
+           <if test="img_remark!= null and img_remark!=''">
+              #{img_remark},
+           </if>
+           <if test="img_type!=null and img_type!=''">
+              #{img_type},
+           </if>
+           <if test="is_delete!= null and is_delete!=''">
+              #{is_delete},
+           </if>
+           <if test="create_time!= null and create_time!=''">
+              #{create_time},
+           </if>
+       </trim>
+	</insert>
+	
+	<!-- 修改图片 -->
+	<update id="updateMemberImg" parameterType="memberImgBean">
+	     update tst_member_img 
+	     <set>
+	        <if test="member_img!=null and member_img!=''">
+	            member_img=#{member_img},
+	        </if>
+	        <if test="img_remark!=null and img_remark!=''">
+	            img_remark=#{img_remark},
+	        </if>
+	        <if test="img_type!=null and img_type!=''">
+	            img_type=#{img_type},
+	        </if>
+	     </set>
+	     where member_img_id=#{member_img_id}
+	</update>
+	
+	<!-- 删除图片 -->
+	<update id="deleteMemberImg" parameterType="memberImgBean">
+	     update tst_member_img set is_delete='1'
+	     where member_id=#{member_id} and img_type=#{img_type}
+	</update>
+	
+	<!-- <update id="deleteMemberImg" parameterType="memberImgBean">
+	     update tst_member_img set is_delete='1'
+	     where member_img_id=#{member_img_id}
+	</update> -->
+	
+	<!-- 删除资质认证图片 -->
+	<update id="deleteQualificationImg" parameterType="memberImgBean">
+	     update tst_member_img set is_delete='1'
+	     where member_id=#{member_id} and member_qualification_id=#{member_qualification_id}
+	</update>
+</mapper>

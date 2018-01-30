@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tst.project.dao.controller.MemberDaoC">
+	
+	<select id="getMemberByMerchants" parameterType="memberBean" resultType="memberBean">
+		select * from tst_member
+		
+		where merchants_id=#{merchants_id}
+	</select>
+	
+	<select id="getAllMembersCount" parameterType="memberBean" resultType="Map">
+		select sum(case when is_vip='1' then 1 else 0 end) as member_count from 
+		tst_member
+	</select>
+
+	<select id="getDistributionMembers" parameterType="memberBean" resultType="memberBean">
+		select * from ecs_users
+		where 1=1 and fill_invitation_code=#{invitation_code}
+		<if test=' member_id != null and member_id != "0" '>
+			and user_id=#{member_id}
+		</if>
+		<if test=' member_account != null and member_account != "" '>
+			and mobile_phone=#{member_account}
+		</if>
+	</select>
+	
+	<update id="updateMemberDetailZSSG" parameterType="memberBean">
+		update ecs_users set user_name=user_name
+				,user_money=#{user_money}
+		where user_id=#{member_id}
+	</update>
+	
+	<update id="updateMemberDetail" parameterType="memberBean" >
+		update tst_member set member_id=member_id,
+		create_time=now()
+		<if test=' is_merchants != null and is_merchants != "" '>
+			,is_merchants=#{is_merchants}
+		</if>
+		<if test=' nick_name != null and nick_name != "" '>
+			,nick_name=#{nick_name}
+		</if>
+		<if test=' phone != null and phone != "" '>
+			,phone=#{phone}
+		</if>
+		<if test=' integral != null and integral != "" '>
+			,integral=#{integral}
+		</if>
+		<if test=' position != null and position != "" '>
+			,position=#{position}
+		</if>
+		<if test=' hobby != null and hobby != "" '>
+			,hobby=#{hobby}
+		</if>
+		<if test=' create_time != null and create_time != "" '>
+			,create_time=#{create_time}
+		</if>
+		<if test=' head_path != null and head_path != "" '>
+			,head_path=#{head_path}
+		</if>
+		<if test=' backgroup_img != null and backgroup_img != "" '>
+			,backgroup_img=#{backgroup_img}
+		</if>
+		<if test=' age != null and age != "" '>
+			,age=#{age}
+		</if>
+		<if test=' sex != null and sex != "" '>
+			,sex=#{sex}
+		</if>
+		<if test=' balance != null and balance != "" '>
+			,balance=#{balance}
+		</if>
+		<if test=' business_id != null and business_id != "" '>
+			,business_id=#{business_id}
+		</if>
+		<if test=' merchants_account_id != null and merchants_account_id != "" '>
+			,merchants_account_id=#{merchants_account_id}
+		</if>
+		<if test=' member_level != null and member_level != "" '>
+			,member_level=#{member_level}
+		</if>
+		<if test=' is_certification_vip != null and is_certification_vip != "" '>
+			,is_certification_vip=#{is_certification_vip}
+		</if>
+		<if test=' is_door_certification != null and is_door_certification != "" '>
+			,is_door_certification=#{is_door_certification}
+		</if>
+		<if test=' is_mobile_certification != null and is_mobile_certification != "" '>
+			,is_mobile_certification=#{is_mobile_certification}
+		</if>
+		<if test=' is_freeze != null and is_freeze != "" '>
+			,is_freeze=#{is_freeze}
+		</if>
+		where member_id=#{member_id}
+	</update>
+	
+	<select id="getAllMembers" parameterType="memberBean" resultType="memberBean">
+		select a.*,
+		    (select GROUP_CONCAT(service_qq) from tst_customer_service where member_id=a.member_id)as service_qq 
+		    from tst_member a
+		where 1=1
+		<if test=' member_id != null and member_id != "0" '>
+			and a.member_id=#{member_id}
+		</if>
+		<if test=' member_account != null and member_account != "" '>
+			and a.member_account=#{member_account}
+		</if>
+		<if test=' company_name != null and company_name != "" '>
+			and a.company_name like concat('%',#{company_name},'%')
+		</if>
+		<if test=' is_certification_vip != null and is_certification_vip != "" and is_certification_vip!="0"'>
+			and a.is_certification_vip=#{is_certification_vip}
+		</if>
+		<if test=' is_door_certification != null and is_door_certification != "" and is_door_certification != "0"'>
+			and a.is_door_certification=#{is_door_certification}
+		</if>
+		<if test=' is_mobile_certification != null and is_mobile_certification != "" and is_mobile_certification != "0"'>
+			and a.is_mobile_certification=#{is_mobile_certification}
+		</if>
+		<if test=' member_level != null and member_level != ""'>
+			and a.member_level=#{member_level}
+		</if>
+		order by a.create_time desc
+	</select>	
+	
+	<select id="getAllMembersZSSG" parameterType="memberBean" resultType="memberBean">
+		select * from ecs_users
+		where 1=1
+		<if test=' member_id != null and member_id != "0" '>
+			and user_id=#{member_id}
+		</if>
+		<if test=' member_account != null and member_account != "" '>
+			and mobile_phone=#{member_account}
+		</if>
+		<if test=' nick_name != null and nick_name != "" '>
+			and (nick_name like concat('%',#{nick_name},'%') or user_name like concat('%',#{nick_name},'%'))
+		</if>
+	</select>
+	
+	<select id="getOneMemberDetail" parameterType="memberBean" resultType="memberBean">
+		select * from tst_member
+		where member_id=#{member_id}
+	</select>
+	
+	<select id="getOneMemberDetailZSSG" parameterType="memberBean" resultType="memberBean">
+		select * from ecs_users
+		where user_id=#{member_id}
+	</select>
+	
+	<!-- 解冻或冻结账号 -->
+	<update id="updateIsFreeze" parameterType="memberBean">
+	    update tst_member set is_freeze=#{is_freeze}
+	    where member_id=#{member_id}
+	</update>
+	
+	<!-- 查询用户等级 -->
+	<select id="getMemberLevel" resultType="memberLevelBean">
+	    select * from tst_member_level where is_delete='0'
+	</select>
+	
+	<!-- 查询用户授权品牌（字符串） -->
+	<select id="getMember" parameterType="memberBean" resultType="java.lang.String">
+	    select *,GROUP_CONCAT(img_remark) as brand_name 
+		from tst_member_img 
+		where member_id=#{member_id} 
+		and img_type='related_authorization' 
+		and is_delete='0'
+	</select>
+	
+	<!-- 添加会员 -->
+	<insert id="addMember" parameterType="memberBean">
+	    insert into tst_member
+		 (member_account,password,invitation_code
+		,fill_invitation_code,hx_account,hx_pass,hx_nick_name,create_time,qrcode_img,
+		sex,real_name,nick_name,age,phone,card_id,is_vip,merchants_account_id,merchants_id,is_certification_vip,company_name
+			<if test=' member_role != null and member_role != "" '>
+				,member_role
+			</if>
+			<if test=' member_code != null and member_code != "" '>
+				,member_code
+			</if>
+			<if test=' stored_code != null and stored_code != "" '>
+				,stored_code
+			</if>
+		) 
+		values 
+		(#{member_account},#{password},#{invitation_code}
+		,#{fill_invitation_code},#{hx_account},#{hx_pass},#{hx_nick_name},now(),#{qrcode_img},
+		#{sex},#{real_name},#{nick_name},#{age},#{phone},#{card_id},#{is_vip},#{merchants_account_id},#{merchants_id},#{is_certification_vip}
+		,#{company_name}
+			<if test=' member_role != null and member_role != "" '>
+				,#{member_role}
+			</if>
+			<if test=' member_code != null and member_code != "" '>
+				,#{member_code}
+			</if>
+			<if test=' stored_code != null and stored_code != "" '>
+				,#{stored_code}
+			</if>
+		)
+	</insert>
+	<update id="updateMemberQualificationBean" parameterType="qualificationBean">
+		update tst_member_qualification
+		set qualification_state="wait_audit",
+		create_time=now()
+		where member_id=#{member_id}
+	</update>
+	<update id="updateMemberLevel" parameterType="memberLevelBean">
+		update tst_member_level
+		set deal_number=#{deal_number},deal_price=#{deal_price},
+		release_info_number=#{release_info_number},mobile_certification=#{mobile_certification},
+		door_certification=#{door_certification},credit_reporting_certification=#{credit_reporting_certification},
+		vip_special_line=#{vip_special_line},transaction_security=#{transaction_security},
+		sms_push=#{sms_push},rebate_wallet=#{rebate_wallet},
+		rebate_cash=#{rebate_cash},advertising_site=#{advertising_site},
+		brochure_push=#{brochure_push},financial_support=#{financial_support},
+		entrust=#{entrust},is_wait_send=#{is_wait_send},
+		wait_send_desc=#{wait_send_desc},is_wait_receive=#{is_wait_receive},
+		wait_receive_desc=#{wait_receive_desc},is_wait_assessment=#{is_wait_assessment},
+		wait_assessment_desc=#{wait_assessment_desc},is_refund=#{is_refund},
+		refund_desc=#{refund_desc},is_confirm=#{is_confirm},confirm_desc=#{confirm_desc},
+		is_accept=#{is_accept},accept_desc=#{accept_desc},is_refuse=#{is_refuse},refuse_desc=#{refuse_desc},
+		count1=#{count1},count2=#{count2},count3=#{count3},count4=#{count4},count5=#{count5},count6=#{count6},
+		count7=#{count7},count8=#{count8},is_get=#{is_get},is_sell=#{is_sell},refresh_count=#{refresh_count}
+		where level_id=#{level_id}
+	</update>
+	
+	<!-- 导出用户excel 
+	(select GROUP_CONCAT(img_remark) from tst_member_img where member_id=a.member_id and img_type='related_authorization' and is_delete='0')as brand_name
+	-->
+	<select id="exportMemberExcel" parameterType="memberBean" resultType="memberBean">
+	select a.*,
+		    (select GROUP_CONCAT(service_qq) from tst_customer_service where member_id=a.member_id)as service_qq 
+		    from tst_member a
+		where 1=1
+		<if test=' member_id != null and member_id != "0" '>
+			and a.member_id=#{member_id}
+		</if>
+		<if test=' member_account != null and member_account != "" '>
+			and a.member_account=#{member_account}
+		</if>
+		<if test=' company_name != null and company_name != "" '>
+			and a.company_name like concat('%',#{company_name},'%')
+		</if>
+		<if test=' is_certification_vip != null and is_certification_vip != "" and is_certification_vip!="0"'>
+			and a.is_certification_vip=#{is_certification_vip}
+		</if>
+		<if test=' is_door_certification != null and is_door_certification != "" and is_door_certification != "0"'>
+			and a.is_door_certification=#{is_door_certification}
+		</if>
+		<if test=' is_mobile_certification != null and is_mobile_certification != "" and is_mobile_certification != "0"'>
+			and a.is_mobile_certification=#{is_mobile_certification}
+		</if>
+		<if test=' member_level != null and member_level != ""'>
+			and a.member_level=#{member_level}
+		</if>
+		order by a.create_time desc
+	</select>
+	
+</mapper>

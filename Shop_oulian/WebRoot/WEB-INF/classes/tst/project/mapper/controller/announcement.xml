@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tst.project.dao.controller.AnnouncementDaoC">
+
+	<select id="getAnnouncementDetail" parameterType="announcementBean" resultType="announcementBean">
+		 select * from tst_announcement
+		 where announcement_id=#{announcement_id}
+	</select>
+	<!-- 查询系统公告 -->
+     <select id="getAnnouncementBeans" parameterType="announcementBean" resultType="announcementBean">
+         select * from tst_announcement where 1=1
+         <if test="announcement_title!=null and announcement_title!=''">
+            and announcement_title like concat('%',#{announcement_title},'%') 		
+         </if>
+         and is_delete='0'
+         order by create_time desc
+     </select>
+     
+     <!-- 添加系统公告 -->
+     <insert id="addAnnouncement" parameterType="announcementBean">
+         insert into tst_announcement(announcement_title,announcement_content,create_time)
+         values(#{announcement_title},#{announcement_content},now())
+     </insert>
+     
+     <!-- 删除系统公告 -->
+     <update id="deleteAnnouncement" parameterType="announcementBean">
+         update tst_announcement set is_delete='1'
+         where announcement_id=#{announcement_id}
+     </update>
+     
+     <!-- 修改系统公告 -->
+     <update id="updateAnnouncement" parameterType="announcementBean">
+         update tst_announcement 
+         set announcement_title=#{announcement_title},
+         announcement_content=#{announcement_content}
+         where announcement_id=#{announcement_id}
+     </update>
+</mapper>

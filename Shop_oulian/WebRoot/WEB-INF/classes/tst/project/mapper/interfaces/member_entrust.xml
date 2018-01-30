@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tst.project.dao.interfaces.MemberEntrustDao">
+
+	<!-- 添加客户委托信息 -->
+	<insert id="addMemberEntrust" parameterType="memberEntrustBean">
+	    insert into tst_member_entrust(member_id,entrust_number,entrust_state,entrust_type)
+	    values(#{member_id},#{entrust_number},#{entrust_state},#{entrust_type})
+	</insert>
+	
+	<!-- 查询委托信息 -->
+	<select id="getMemberEntrustList" parameterType="memberEntrustBean" resultType="memberEntrustBean">
+	    select * from tst_member_entrust where member_id=#{member_id} 
+	    <if test="entrust_type!=null and entrust_type!=''">
+	      and entrust_type=#{entrust_type}
+	    </if>
+	    and is_delete='0'
+	</select>
+	
+</mapper>

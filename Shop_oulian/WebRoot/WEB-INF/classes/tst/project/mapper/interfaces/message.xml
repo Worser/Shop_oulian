@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tst.project.dao.interfaces.MessageDao">
+	
+
+      <!-- 添加系统消息 -->
+      <insert id="addMessage" parameterType="messageBean">
+          insert into tst_message(member_id,message_title,message_content)
+          values(#{member_id},#{message_title},#{message_content})
+      </insert>
+      
+      <!-- 查询系统消息 -->
+      <select id="getMessageBean" parameterType="messageBean" resultType="messageBean">
+          select * from tst_message where member_id=#{member_id} and is_delete='0'
+          order by create_time desc
+      </select>
+      
+      <!-- 查询有多少未读信息 -->
+      <select id="getNotReadMessageCount" parameterType="messageBean" resultType="int">
+           select count(*) from tst_message where member_id=#{member_id} and is_delete='0' and is_read='0'
+      </select>
+      
+      <!-- 设置为已读 -->
+      <update id="messageIsRead" parameterType="messageBean">
+            update tst_message set is_read='1'
+            where message_id=#{message_id}
+      </update>
+      
+      <!-- 查询单个消息详情 -->
+      <select id="getOneMessageDateil" parameterType="messageBean" resultType="messageBean">
+           select * from tst_message where message_id=#{message_id} and is_delete='0'
+      </select>
+      
+      <!-- 全部设为已读 -->
+      <update id="allMessageIsRead" parameterType="messageBean">
+           update tst_message set is_read='1'
+           where member_id=#{member_id}
+      </update>
+      
+      <!-- 批量删除 -->
+      <update id="batchDelete" parameterType="messageBean">
+           update tst_message set is_delete='1'
+           where find_in_set(message_id,#{message_ids})
+      </update>
+      
+      <!-- 全部删除 -->
+      <update id="allDelete" parameterType="messageBean">
+           update tst_message set is_delete='1'
+           where member_id=#{member_id}
+      </update>
+      
+      <!-- 单个删除 -->
+      <update id="oneDelete" parameterType="messageBean">
+           update tst_message set is_delete='1'
+           where message_id=#{message_id}
+      </update>
+      
+</mapper>

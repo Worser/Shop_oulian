@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tst.project.dao.interfaces.CollectionTopicDao">
+	<!-- 添加帖子收藏 -->
+	<insert id="insertCollectionTopic" parameterType="CollectionTopicBean">
+		insert into bbs_collection (member_id,relation_id)
+		value(#{member_id},#{relation_id})
+	</insert>
+	<!-- 取消收藏 -->	
+	<update id="updateCollcetionTopic" parameterType="CollectionTopicBean">
+		 update bbs_collection set collection_state = #{collection_state} where relation_id =#{relation_id} and member_id=#{member_id} 
+	</update>
+	<!-- 查询是否收藏 0-收藏  1-未收藏 -->
+	<select id="getCollectionBySearch"  parameterType="CollectionTopicBean" resultType="CollectionTopicBean">
+	    select * from bbs_collection where member_id=#{member_id} and relation_id=#{relation_id}
+	     and  collection_state='0'
+	</select>
+	<!-- 查询是否收藏 0-收藏  1-未收藏 -->
+	<select id="getStateByCollection"  parameterType="CollectionTopicBean" resultType="CollectionTopicBean">
+	    select * from bbs_collection where member_id=#{member_id} and relation_id=#{relation_id}
+	    order by create_time desc limit 1
+	</select>
+</mapper>

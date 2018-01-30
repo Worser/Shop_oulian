@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tst.project.dao.interfaces.GoodsFindBuyDao">
+
+     <!-- 添加求购 -->
+     <insert id="addGoodsFindBuy" parameterType="goodsFindBuyBean">
+         insert into tst_goods_find_buy
+         <trim prefix="(" suffix=")" suffixOverrides=",">
+           <if test="member_id!= null and member_id!=''">
+              member_id,
+           </if>
+           <if test="goods_name!= null and goods_name!=''">
+              goods_name,
+           </if>
+           <if test="goods_num!= null and goods_num!=''">
+              goods_num,
+           </if>
+           <if test="target_unit_price!=null and target_unit_price!=''">
+              target_unit_price,
+           </if>
+           <if test="data_categories!= null and data_categories!=''">
+              data_categories,
+           </if>
+           <if test="create_time!= null and create_time!=''">
+              create_time,
+           </if>
+           <if test="end_time!= null and end_time!=''">
+              end_time,
+           </if>
+           <if test="is_delete!= null and is_delete!=''">
+              is_delete,
+           </if>
+       </trim>
+       <trim prefix="values (" suffix=")" suffixOverrides=",">
+           <if test="member_id!= null and member_id!=''">
+              #{member_id},
+           </if>
+           <if test="goods_name!= null and goods_name!=''">
+              #{goods_name},
+           </if>
+           <if test="goods_num!= null and goods_num!=''">
+              #{goods_num},
+           </if>
+           <if test="target_unit_price!=null and target_unit_price!=''">
+              #{target_unit_price},
+           </if>
+           <if test="data_categories!= null and data_categories!=''">
+              #{data_categories},
+           </if>
+           <if test="create_time!= null and create_time!=''">
+              #{create_time},
+           </if>
+           <if test="end_time!= null and end_time!=''">
+              #{end_time},
+           </if>
+           <if test="is_delete!= null and is_delete!=''">
+              #{is_delete},
+           </if>
+       </trim>
+     </insert>
+	
+	<!-- 修改求购信息 -->
+	<update id="updateGoodsFindBuy" parameterType="goodsFindBuyBean">
+	    update tst_goods_find_buy
+	    <set>
+	        <if test="goods_name!= null and goods_name!=''">
+              goods_name=#{goods_name},
+           </if>
+           <if test="goods_num!= null and goods_num!=''">
+              goods_num=#{goods_num},
+           </if>
+           <if test="target_unit_price!=null and target_unit_price!=''">
+              target_unit_price=#{target_unit_price},
+           </if>
+           <if test="data_categories!= null and data_categories!=''">
+              data_categories=#{data_categories},
+           </if>
+           <if test="end_time!= null and end_time!=''">
+              end_time=#{end_time},
+           </if>
+	    </set>
+	    where find_id=#{find_id}
+	</update>
+	
+	<!-- 删除求购 -->
+	<update id="deleteGoodsFindBuy" parameterType="goodsFindBuyBean">
+	    update tst_goods_find_buy set is_delete='1'
+	    where find_id=#{find_id}
+	</update>
+	
+	<!-- 批量删除求购 -->
+	<update id="deleteMoreGoodsFindBuy" parameterType="goodsFindBuyBean">
+	    update tst_goods_find_buy set is_delete='1'
+	    where find_in_set(find_id,#{find_ids})
+	</update>
+	
+	<!-- 查询用户是否求购过此型号 -->
+	<select id="getGoodsMemberIsFindBuy" parameterType="goodsFindBuyBean" resultType="goodsFindBuyBean"> 
+	     select * from tst_goods_find_buy 
+	     where member_id=#{member_id} and is_delete='0' and data_categories=#{data_categories} 
+	     and goods_name=#{goods_name}
+	</select>
+	
+	<!-- 查询用户求购 -->
+	<select id="getMemberFindBuy" parameterType="goodsFindBuyBean" resultType="goodsFindBuyBean">
+	     select *,
+			(case when end_time>NOW() then "未过期" else "已过期" end) as end_time_show 
+			from tst_goods_find_buy 
+		 where member_id=#{member_id}
+		 <if test="goods_name!=null and goods_name!=''">
+		    and goods_name like concat('%',#{goods_name},'%')
+		 </if> 
+		 and is_delete='0' 
+		 order by create_time desc
+	</select>
+	
+	<!-- 查询单个求购信息 -->
+	<select id="getFindBuyDatilsById" parameterType="goodsFindBuyBean" resultType="goodsFindBuyBean">
+	    select a.*,(a.goods_num * a.target_unit_price) as totalPrice,
+		(case when a.end_time>NOW() then "未过期" else "已过期" end) as end_time_show
+		,c.collection_id,(case when c.collection_id is null then "0" else "1" end)
+		as is_collection
+		from tst_goods_find_buy a
+		left join tst_collection as c 
+		on a.find_id=c.relation_id and c.collection_type='goods_find_buy'
+		and c.is_delete='0' and c.member_id=#{member_id}
+		where a.find_id=#{find_id} and a.is_delete='0'
+	</select>
+	
+	<!-- 查询单个求购信息是否过期 -->
+	<select id="getfindBuyWhetherOverdue" parameterType="goodsFindBuyBean" resultType="goodsFindBuyBean">
+	    select * from tst_goods_find_buy where find_id=#{find_id} and is_delete='0' and end_time>NOW()
+	</select>
+	
+	<!-- 一键延期 -->
+	<update id="batchAddTime" parameterType="goodsFindBuyBean">
+	    update tst_goods_find_buy set end_time=DATE_ADD((case when end_time > NOW() then end_time else NOW() end),INTERVAL 7 day)
+        where find_in_set(find_id,#{find_ids})
+	</update>
+	
+	<!-- 最新求购信息（供应页面） -->
+	<select id="GetNewestFindBuyInfo" parameterType="goodsFindBuyBean" resultType="goodsFindBuyBean">
+	    select a.*,b.goods_img as goods_img 
+	    from tst_goods_find_buy a
+		inner join tst_goods b
+		on a.goods_name = b.goods_name and b.merchants_id='1' and b.is_delete='0'
+		where 1=1 and a.end_time>NOW() and a.is_delete='0' 
+		order by a.create_time desc limit 0,20 
+	</select>
+	
+	<!-- 根据品牌查询求购信息 -->
+	<select id="getFindBuyByBrand" parameterType="goodsFindBuyBean" resultType="goodsFindBuyBean">
+	 select  a.* 
+			from tst_goods_find_buy a
+		inner join tst_goods b
+		on a.goods_name = b.goods_name and b.merchants_id='1' and b.goods_type='2' and b.goods_state='1' and b.is_delete='0'
+		where a.is_delete='0'
+		<if test="goods_uuid!=null and goods_uuid!=''">
+			    and b.goods_parent_uuid like CONCAT('%',#{goods_uuid},'%')
+		</if>			and a.end_time>NOW()	
+		ORDER BY a.create_time desc
+
+	   limit 0,6
+	   
+	    <!-- select COUNT(*)as tatalCount,a.* 
+			from tst_goods_find_buy a
+		inner join tst_goods b
+			on a.goods_name = b.goods_name and b.merchants_id='1' and b.goods_type='2' and b.goods_state='1' and b.is_delete='0'
+		where 
+			a.is_delete='0'
+			<if test="goods_uuid!=null and goods_uuid!=''">
+			    and b.goods_parent_uuid like CONCAT('%',#{goods_uuid},'%')
+			</if>
+			and a.end_time>NOW()	
+		GROUP BY a.goods_name
+		ORDER BY tatalCount desc
+	    limit 0,6 -->
+	</select>
+	
+	<!-- 根据品牌查询求购列表 （分页） -->
+	<select id="getBrandFindBuyListPage" parameterType="goodsFindBuyBean" resultType="goodsFindBuyBean">
+	    select a.* 
+			from tst_goods_find_buy a
+		inner join tst_goods b
+			on a.goods_name = b.goods_name and b.merchants_id='1' and b.goods_type='2' and b.goods_state='1' and b.is_delete='0'
+		where 
+			a.is_delete='0'
+			<if test="goods_uuid!=null and goods_uuid!=''">
+			    and b.goods_parent_uuid like CONCAT('%',#{goods_uuid},'%')
+			</if>
+			and a.end_time>NOW()	
+		ORDER BY a.create_time desc
+	</select>
+	
+	<!-- 查询型号求购总数 -->
+	<select id="getFindBuySumCount" parameterType="goodsFindBuyBean" resultType="java.lang.String">
+	    select IFNULL(SUM(goods_num),0) as totalCount from tst_goods_find_buy
+        where goods_name=#{goods_name} and is_delete='0' and end_time>NOW()
+	</select>
+	
+	<!-- 根据型号查询有多少求购商 -->
+	<select id="getFindBuyMemberByGoodsName" parameterType="goodsFindBuyBean" resultType="goodsFindBuyBean">
+	    select a.*,b.goods_img from tst_goods_find_buy a
+		left join tst_goods b
+		on a.goods_name = b.goods_name
+		and b.is_delete='0' and b.merchants_id='1' and b.goods_type='2'
+				
+		inner join tst_member as c on a.member_id=c.member_id and c.is_delete='0'
+		and c.is_freeze='0'
+
+		where a.goods_name=#{goods_name} and a.is_delete='0'
+		and a.end_time >NOW()
+		order by a.create_time desc
+	</select>
+	
+	<!-- 离线报价 -->
+	<insert id="addOfflineQuotation" parameterType="offlineQuotationBean">
+	    insert into tst_offline_quotation(member_id,find_id,quotation_price,is_delete,create_time)
+	    values(#{member_id},#{find_id},#{quotation_price},#{is_delete},NOW())
+	</insert>
+
+    <!-- 获得求购信息 -->
+    <select id="getFindBuyInfo" parameterType="goodsFindBuyBean" resultType="goodsFindBuyBean">
+        select * from tst_goods_find_buy where member_id=#{member_id}
+        <if test="goods_name!=null and goods_name!=''">
+           and goods_name like CONCAT('%',#{goods_name},'%')
+        </if>
+        and is_delete='0'
+        order by create_time desc
+    </select>
+
+    <!-- 获得该求购信息的离线报价 -->
+    <select id="getOfflineQuotation" parameterType="offlineQuotationBean" resultType="offlineQuotationBean">
+        select a.*,company_remark as member_name from tst_offline_quotation a
+		left join tst_member b
+		on a.member_id = b.member_id
+		where a.find_id=#{find_id} and a.is_delete='0' order by a.create_time desc
+    </select>
+    
+    <!-- 删除报价 （单个）-->
+    <update id="deleteQuotationById" parameterType="offlineQuotationBean">
+        update tst_offline_quotation set is_delete='1'
+        where quotation_id=#{quotation_id}
+    </update>
+    
+    <!-- 相关求购消息 -->
+    <select id="relatedFindBuyMessage" parameterType="goodsFindBuyBean" resultType="goodsFindBuyBean">
+        select a.find_id,a.goods_name,a.member_id,b.goods_img from tst_goods_find_buy a
+		left join tst_goods b
+		on a.goods_name = b.goods_name and b.merchants_id='1'
+		and b.is_delete='0' and b.goods_type='2'
+		where a.member_id=#{member_id} and a.is_delete='0'
+		and a.end_time>NOW()
+		order by a.create_time desc
+    </select>
+    
+    <!-- 根据品牌查询求购信息 -->
+    <select id="getFindBuyBeansByBrand" parameterType="goodsFindBuyBean" resultType="goodsFindBuyBean">
+	     select a.*,b.goods_img 
+				from tst_goods_find_buy a
+			left join tst_goods b
+				on a.goods_name = b.goods_name and b.merchants_id='1' and b.goods_type='2' and b.goods_state='1' and b.is_delete='0'
+				
+			where 
+				a.is_delete='0'
+				<if test="goods_uuid!=null and goods_uuid!=''">
+			          and b.goods_parent_uuid like CONCAT('%',#{goods_uuid},'%')
+			    </if>
+			    
+			    <if test=' member_id != null and member_id != "" '>
+			    	and a.member_id=#{member_id}
+			    </if>
+	            and a.end_time > NOW()
+			ORDER BY a.create_time desc
+    </select>
+</mapper>

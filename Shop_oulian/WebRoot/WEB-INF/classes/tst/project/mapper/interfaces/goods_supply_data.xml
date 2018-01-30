@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tst.project.dao.interfaces.GoodsSupplyDataDao">
+	<insert id="addSupplyDatas" parameterType="goodsBean">
+		insert into tst_goods_supply_data
+		(goods_id,goods_name,goods_stock,min_buy_num,goods_unit_price,data_categories,give_time)
+		select a.goods_id,a.record_name,a.record_stock,a.record_min_buy_num,a.record_unit_price
+		,a.record_data_categories,a.record_give_time
+		from tst_log_record as a
+		left join tst_goods_supply_data as c
+		on a.record_min_buy_num=c.min_buy_num 
+		and a.record_data_categories=c.data_categories
+		and a.record_unit_price=c.goods_unit_price
+		and a.record_give_time=c.give_time
+		and c.is_delete='0'
+		and a.record_name=c.goods_name
+		and a.goods_id=c.goods_id
+		where a.record_no=#{goods_no}
+		and c.supply_id is null
+	</insert>
+	
+	<update id="updateSupplyData" parameterType="goodsSupplyDataBean">
+		update tst_goods_supply_data
+		set goods_name=#{goods_name},
+		goods_stock=#{goods_stock},
+		min_buy_num=#{min_buy_num},
+		goods_unit_price=#{goods_unit_price},
+		data_categories=#{data_categories},
+		give_time=#{give_time},
+		create_time = now(),
+		is_delete='0'
+		where supply_id=#{supply_id}
+	</update>
+     <!-- 添加商品供应数据 -->
+     <insert id="addSupplyData" parameterType="goodsSupplyDataBean">
+          insert into tst_goods_supply_data
+          <trim prefix="(" suffix=")" suffixOverrides=",">
+           <if test="goods_id!= null and goods_id!=''">
+              goods_id,
+           </if>
+           <if test="goods_name!= null and goods_name!=''">
+              goods_name,
+           </if>
+           <if test="goods_stock!= null and goods_stock!=''">
+              goods_stock,
+           </if>
+           <if test="min_buy_num!= null and min_buy_num!=''">
+              min_buy_num,
+           </if>
+           <if test="goods_unit_price!= null and goods_unit_price!=''">
+              goods_unit_price,
+           </if>
+           <if test="data_categories!=null and data_categories!=''">
+              data_categories,
+           </if>
+           <if test="give_time!= null and give_time!=''">
+              give_time,
+           </if>
+           <if test="is_delete!= null and is_delete!=''">
+              is_delete,
+           </if>
+           <if test="create_time!= null and create_time!=''">
+              create_time,
+           </if>
+       </trim>
+       <trim prefix="values (" suffix=")" suffixOverrides=",">
+           <if test="goods_id!= null and goods_id!=''">
+              #{goods_id},
+           </if>
+           <if test="goods_name!= null and goods_name!=''">
+              #{goods_name},
+           </if>
+           <if test="goods_stock!= null and goods_stock!=''">
+              #{goods_stock},
+           </if>
+           <if test="min_buy_num!= null and min_buy_num!=''">
+              #{min_buy_num},
+           </if>
+            <if test="goods_unit_price=='询议'">
+     		 '0.0',
+     		</if>
+     		<if test="goods_unit_price!=null and goods_unit_price!='询议'">
+     		 #{goods_unit_price},
+     		</if>
+           <if test="data_categories!=null and data_categories!=''">
+              #{data_categories},
+           </if>
+           <if test="give_time!= null and give_time!=''">
+              #{give_time},
+           </if>
+           <if test="is_delete!= null and is_delete!=''">
+              #{is_delete},
+           </if>
+           <if test="create_time!= null and create_time!=''">
+              #{create_time},
+           </if>
+       </trim>
+     </insert>
+     
+     <select id="getGoodsSupplyDataByID" parameterType="goodsSupplyDataBean" resultType="goodsSupplyDataBean">
+     	select * from tst_goods_supply_data 
+     	where supply_id=#{supply_id} and is_delete='0'
+     </select>
+     <!-- 查询商品的供应数据 -->
+     <select id="getGoodsSupplyData" parameterType="goodsSupplyDataBean" resultType="goodsSupplyDataBean">
+          select * from tst_goods_supply_data 
+          where goods_id=#{goods_id} 
+          <if test="data_categories!=null and data_categories!=''">
+              and data_categories=#{data_categories}
+          </if>
+          and is_delete='0'
+          order by data_categories,goods_unit_price desc
+     </select>
+     
+     <!-- 删除商品供应数据 -->
+     <update id="deleteSupplyData" parameterType="goodsSupplyDataBean">
+          update tst_goods_supply_data set is_delete='1'
+          where goods_id=#{goods_id}
+     </update>
+     
+     <!-- 查询该型号供应数据是否有重复 -->
+     <select id="isSupplyDataRepeat" parameterType="goodsSupplyDataBean" resultType="goodsSupplyDataBean">
+          select * from tst_goods_supply_data
+          where goods_id=#{goods_id} and min_buy_num=#{min_buy_num}
+          and goods_unit_price=#{goods_unit_price} and data_categories=#{data_categories}
+          and give_time=#{give_time} and goods_stock=#{goods_stock} and is_delete='0'
+     </select>
+     
+     <!-- 删除供应商所有供应数据 -->
+     <update id="deleteSupplyDataAll" parameterType="goodsSupplyDataBean">
+          update tst_goods_supply_data set is_delete='1'
+			     where goods_id in (
+		      select goods_id from tst_goods where merchants_id=#{merchants_id}
+		)
+     </update>
+     
+     <!-- 修改供应数据库存 -->
+     <update id="updateSupplyStock" parameterType="goodsSupplyDataBean">
+          update tst_goods_supply_data set goods_stock=#{goods_stock}
+          where supply_id=#{supply_id}
+     </update>
+     
+      <!-- 修改供应数据库存 -->
+     <update id="updateSupplyStockV2" parameterType="goodsSupplyDataBean">
+          update tst_goods_supply_data set goods_stock=goods_stock+#{goods_stock}
+          where supply_id=#{supply_id}
+     </update>
+</mapper>

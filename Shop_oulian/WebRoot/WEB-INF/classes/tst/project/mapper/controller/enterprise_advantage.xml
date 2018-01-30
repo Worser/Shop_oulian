@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tst.project.dao.controller.EnterpriseAdvantageDaoC">
+
+    <!-- 查询企业优势 -->
+	<select id="getEnterpriseAdvantageList" parameterType="enterpriseAdvantageBean" resultType="enterpriseAdvantageBean">
+	    select * from tst_enterprise_advantage where member_id=#{member_id} and is_delete='0'
+	</select>
+	
+</mapper>

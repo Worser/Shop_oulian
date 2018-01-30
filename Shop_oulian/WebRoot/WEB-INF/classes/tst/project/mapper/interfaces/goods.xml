@@ -1,0 +1,1385 @@
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tst.project.dao.interfaces.GoodsDaoI">
+
+	<select id="getMerchantsGoodsCount" parameterType="goodsBean" resultType="int">
+		select count(*) from tst_goods
+		where merchants_id=#{merchants_id} and is_delete='0'
+	</select>
+
+	<select id="getGoodsFindBuyCount" parameterType="goodsFindBuyBean" resultType="int">
+			select count(*) from tst_goods_find_buy
+		where is_delete='0' and end_time is not null
+		and (select percent_value from tst_percent where percent_type='find_buy')>TIMESTAMPDIFF(hour,now(),end_time)
+		and TIMESTAMPDIFF(hour,now(),end_time)>0
+		and member_id=#{member_id}
+	</select>
+	
+	<select id="getGoodsManual" parameterType="manualBean" resultType="manualBean">
+		select * from tst_goods_manual
+		
+		where goods_id=#{goods_id} and is_delete='0' and manual_state='1'
+	</select>
+
+	<select  id="getTopBrandMerchants" parameterType="goodsBean" resultType="memberBean">
+			select c.*,sum(a.profit_money) as profit_money from tst_profit_goods as a
+		inner join tst_order as b
+		on a.order_id=b.order_id
+		inner join tst_member as c
+		on b.merchants_id = c.merchants_id
+		where a.parent_id=#{goods_id} and a.profit_type='detail'
+		group by b.merchants_id 
+		order by profit_money desc
+		limit 0,5
+	</select>
+	
+	<select id="getTopBrandMember" parameterType="goodsBean" resultType="memberBean">
+		select b.*,sum(a.profit_money) as profit_money from tst_profit_goods as a
+		inner join tst_member as b 
+		on a.member_id = b.member_id
+		where a.parent_id=#{goods_id} and a.profit_type='detail'
+		group by a.member_id 
+		order by profit_money desc
+		limit 0,5
+	</select>
+    
+    <select id="getHotGoodsFindBuy" parameterType="goodsFindBuyBean" resultType="goodsFindBuyBean">
+    	select 
+		(case when h.goods_name is null then "" else h.goods_name end) as brand_name,
+		c.collection_id,(case when c.collection_id is null then "0" else "1" end)
+				as is_collection
+		,b.company_name as merchants_name,b.company_remark,b.merchants_id,a.*,f.goods_img
+		
+		from tst_goods_find_buy as a
+		inner join tst_member as b
+		on a.member_id=b.member_id and b.is_delete='0'
+		
+		left join tst_collection as c 
+		on a.find_id=c.relation_id and c.collection_type='goods_find_buy'
+		and c.is_delete='0' and c.member_id=#{member_id}
+		
+		left join tst_goods as f 
+		on a.goods_name = f.goods_name and f.is_delete='0' and f.merchants_id='1' and f.goods_type='2'
+		left join tst_goods as h 
+		on f.parent_id=h.goods_id and h.is_delete='0' and h.goods_type='1'
+		
+		order by a.ranking_no desc
+		limit 0,5
+    </select>
+    
+    <select id="getHotGoods" parameterType="goodsBean" resultType="goodsBean">
+    	select 
+		f.company_name merchants_name,f.company_remark,(case when b.goods_name is null then "其他" else b.goods_name end) brand_name,
+				d.collection_id,(case when d.collection_id is null then "0" else "1" end)
+				as is_collection
+		,a.goods_name,h.goods_img,a.goods_id
+
+		from tst_goods as a 
+		
+		left join tst_goods as h
+		on a.goods_name=h.goods_name  and h.is_delete='0' and h.merchants_id='1' and h.goods_type='2'
+		left join tst_goods as b 
+		on h.parent_id=b.goods_id
+		and b.goods_type='1' and b.is_delete='0' 
+
+			
+		left join tst_collection as d
+				on a.goods_id=d.relation_id and d.collection_type='goods_supply'
+				and d.is_delete='0' and d.member_id=#{member_id}
+		inner join tst_member as f
+		on a.merchants_id=f.merchants_id and f.is_delete ='0'
+		where a.goods_type='2' and a.is_delete='0'
+		order by a.ranking_no desc
+		limit 0,5
+    </select>
+    
+    <select id="getGoodsClassParentPage" parameterType="goodsBean" resultType="goodsBean">
+    <!-- select a.goods_id,a.goods_name,a.goods_img,a.goods_uuid,
+     	b.goods_name as name1,b.goods_id as id,b.goods_img as img,
+     	b.goods_uuid as uuid,b.goods_parent_uuid as goods_parent_uuid,
+     	b.replace_name 
+		from tst_goods as a 
+		inner join tst_goods as b
+		on b.goods_parent_uuid like concat('%',a.goods_uuid,'%')
+		and b.goods_type='2' and b.merchants_id='1'   
+		where a.goods_type='1'
+				    
+		and a.is_delete ='0' and a.parent_id='-1' and a.goods_state='1'
+		order by a.sort asc -->
+		
+			select goods_id,goods_name,goods_img,goods_uuid
+			from tst_goods as a
+			where a.goods_type=#{goods_type}
+			<if test="goods_uuid!=null and goods_uuid!=''">
+			    and a.goods_uuid like concat('%',#{goods_uuid},'%')
+			</if>
+			<if test='is_import != null and is_import != "" '>
+			    and a.is_import=#{is_import}
+		    </if>
+			and a.is_delete ='0' and a.parent_id=#{parent_id} and a.goods_state='1'
+			order by sort asc
+	</select>
+	
+	
+	<!-- 根据品牌查询商品 -->
+	<select id="getGoodsByBrand" parameterType="goodsBean" resultType="goodsBean">
+		select 
+		(select
+		IFNULL(CONCAT(MIN(goods_unit_price),'~',MAX(goods_unit_price)),"暂无商家供应")as price_interval
+		from tst_goods_supply_data 
+		where goods_name=a.goods_name and is_delete='0'  and goods_unit_price>0) price_interval,
+		IFNULL(MIN(b.min_buy_num),"暂无信息")as min_buy_num,
+		IFNULL(CONCAT(MIN(b.min_buy_num),'~',MAX(b.min_buy_num)),"暂无信息")as buy_num_interval,
+		IFNULL(SUM(b.goods_stock),0) as totalStock,
+
+		a.* from(
+		select a.goods_name,a.goods_id,a.goods_img,a.goods_uuid,a.goods_parent_uuid,a.replace_name
+		from tst_goods as a
+		where a.is_delete='0' and a.goods_state='1'
+		and a.goods_type='2' and a.merchants_id='1'   
+		<if test='goods_uuid != null and goods_uuid != "" '>
+			and goods_parent_uuid like CONCAT('%',#{goods_uuid},'%')
+		</if>
+		order by a.update_time desc limit 0,6
+		) as a
+		inner join tst_goods_supply_data as b
+		on a.goods_name=b.goods_name and b.is_delete='0'
+		group by a.goods_name
+
+	   <!--  select goods_name,goods_id,goods_img,goods_uuid,goods_parent_uuid,replace_name
+		from tst_goods  where is_delete='0' and goods_state='1'
+					  and goods_type='2' 
+			      and merchants_id='1'   
+		<if test='goods_uuid != null and goods_uuid != "" '>
+			and goods_parent_uuid like CONCAT('%',#{goods_uuid},'%')
+		</if>
+		order by update_time desc,create_time desc limit 0,6 -->
+	</select>
+	
+		<!-- 求购 -->
+	<!-- 获得型号基本信息（单价区间，最小起订量等） -->
+    <select id="getGoodsBasicDetail" parameterType="goodsBean" resultType="goodsBean">
+        select 
+		goods_name,(
+		select
+        IFNULL(CONCAT(MIN(goods_unit_price+0),'~',MAX(goods_unit_price+0)),"暂无商家供应")as price_interval
+		from tst_goods_supply_data 
+		where goods_name=#{goods_name}
+		and is_delete='0' 
+		and (data_categories='2' or goods_stock!='0') 
+		and TIMESTAMPDIFF(MINUTE,now(),update_time)>='0' 
+		and goods_unit_price>0)  as price_interval ,
+		IFNULL(MIN(min_buy_num+0),"暂无信息")as min_buy_num,
+		IFNULL(CONCAT(MIN(min_buy_num+0),'~',MAX(min_buy_num+0)),"暂无信息")as buy_num_interval,
+		IFNULL(SUM(goods_stock),0) as totalStock
+		from tst_goods_supply_data 
+		where goods_name=#{goods_name} and is_delete='0' 
+		and TIMESTAMPDIFF(MINUTE,now(),update_time)>='0' and goods_id !='0' 
+    </select>
+    
+	
+	<select id="getMerchantsByBrand" parameterType="goodsBean" resultType="memberBean">
+		select DISTINCT d.member_id,d.company_name from tst_goods_find_buy as a
+		inner join tst_goods as b 
+		on a.goods_name=b.goods_name and b.is_delete='0'
+		and b.goods_type='2' and b.goods_state='1'
+		inner join tst_goods as c
+		on b.parent_id=c.goods_id and c.is_delete='0'
+		and c.goods_name=#{goods_name}
+		and c.goods_type='1' and c.goods_state='1'
+		inner join tst_member as d
+		on a.member_id=d.member_id and d.is_delete='0'
+		where a.is_delete='0'	and a.end_time > NOW()
+	</select>
+
+	<select id="getRecommendGoodsBrand" parameterType="goodsBean" resultType="goodsBean">
+		select * from tst_goods
+		where is_delete='0' and goods_type='1' and is_recommend='1'
+	</select>
+
+	<select id="getMemberAuthorizationRanking" parameterType="goodsProfitBean" resultType="memberBean">
+		select b.* from tst_member_img as a
+		inner join tst_member as b on a.member_id = b.member_id and b.is_delete='0'
+		left join tst_profit_member as c
+		on c.merchants_id=b.merchants_id 
+		and c.profit_type='total' 
+		and c.profit_time=#{profit_time}
+		where a.img_type='related_authorization'
+		and a.img_remark=#{goods_name}
+		and a.is_delete='0'
+		order by c.profit_money desc
+	</select>
+
+	<select id="getGoodsProfitsRanking"  parameterType="goodsProfitBean" resultType="goodsProfitBean">
+		select * from tst_profit_goods 
+		where parent_id=#{parent_id}
+		and profit_time=#{profit_time} and profit_type='total'
+		order by profit_money desc
+	</select>
+
+	<select id="getGoodsProfitCurMonth" parameterType="goodsProfitBean" resultType="goodsProfitBean">
+		select * from tst_profit_goods 
+		where goods_id=#{goods_id}
+		and profit_time=#{profit_time} and profit_type=#{profit_type}
+	</select>
+
+	<update id="updateGoodsProfit" parameterType="goodsProfitBean">
+		update tst_profit_goods
+		set  profit_money=profit_money+#{profit_money},
+		profit_count=profit_count+1
+		where goods_profit_id=#{goods_profit_id}
+	</update>
+
+	<insert id="insertGoodsProfit" parameterType="goodsProfitBean">
+		insert into tst_profit_goods
+		(goods_id,member_id,order_goods_id,order_id,profit_time,create_time,
+		profit_money,profit_type,profit_count,merchants_id,parent_id)
+		values
+		(#{goods_id},#{member_id},#{order_goods_id},#{order_id},#{profit_time},now(),
+		#{profit_money},#{profit_type},1,#{merchants_id},#{parent_id})
+	</insert>
+
+	<select id="getGoodsNews" parameterType="goodsNewBean" resultType="goodsNewBean">
+		select * from tst_goods_new
+		where goods_id = #{goods_id} and is_delete='0'
+	</select>
+	<select id="getGoodsBrandDetail" parameterType="goodsBean" resultType="goodsBean">
+		select (select count(*) from tst_order_goods as b
+		inner join tst_order as d
+		on b.order_id=d.order_id  and FIND_IN_SET(d.order_state,'wait_send,wait_receive,wait_assessment,end')
+		inner join tst_goods as c
+		on b.goods_id and c.goods_id and c.merchants_id=d.merchants_id and c.parent_id=#{goods_id}) as brand_order_count,
+		(select count(*) from tst_order_goods as b
+		inner join tst_order as d
+		on b.order_id=d.order_id  and FIND_IN_SET(d.order_state,'wait_send,wait_receive,wait_assessment,end')) as all_order_count,
+		a.* from tst_goods as a
+		where a.goods_id=#{goods_id}
+	</select>
+	<select id="getGoodsBrands" parameterType="goodsBean" resultType="goodsBean">
+		select * from tst_goods
+		where goods_type='1' and goods_state='1' and is_delete='0'
+		<if test=' is_import != null and is_import != "" '>
+			and is_import=#{is_import}
+		</if>
+		<if test=' goods_id != null and goods_id != "" and goods_id != "0" '>
+			and goods_id=#{goods_id}
+		</if>
+		<if test=' goods_name != null and goods_name != "" '>
+			and goods_name=#{goods_name}
+		</if>
+		order by sort asc
+	</select>
+	
+	<select id="getHotSearchs" parameterType="hotSearchBean" resultType="hotSearchBean">
+		select * from tst_hot_search
+		where is_delete='0' and search_type=#{search_type}
+		order by is_fixed DESC ,search_count desc
+	</select>
+	
+	<update id="updateHotSearch" parameterType="hotSearchBean">
+		update tst_hot_search
+		set search_count=search_count+1
+		where search_id=#{search_id}
+	</update>
+	
+	<select id="getHotSearch" parameterType="hotSearchBean" resultType="hotSearchBean">
+		select * from tst_hot_search
+		where search_name=#{search_name} and search_type=#{search_type}
+	</select>
+	
+	<insert id="inserHotSearch" parameterType="hotSearchBean">
+		insert into tst_hot_search
+		(search_name,search_type,search_count,create_time,is_fixed)
+		values
+		(#{search_name},#{search_type},#{search_count},now(),#{is_fixed})
+	</insert>
+
+	<select id="getHomeActivitys" parameterType="homeActivityBean" resultType="homeActivityBean">
+		select * from tst_home_activity
+		where home_type=#{home_type} and is_delete='0'
+	</select>
+
+	<select id="getGoodsClassLabels" parameterType="goodsLabelBean" resultType="goodsLabelBean">
+		select a.* from tst_goods_label as a
+		inner join tst_goods_relation_label 
+		as b on a.label_id=b.label_id and b.is_delete='0'
+		and b.goods_id='79'
+		where 1=1 and a.is_delete='0'
+		order by a.sort asc
+	</select>	
+	
+	<select id="getPreSaleGoodss" parameterType="goodsBean" resultType="goodsBean">
+		select * from tst_goods where is_delete='0' and goods_type='2'
+		and goods_state='1' and is_pre_sale='1'
+		order by sort asc	
+	</select>
+
+	<select id='getSellingGoodsReal' parameterType="goodsBean" resultType="goodsBean">
+		select * from tst_goods where is_delete='0' and goods_type='2'
+		and goods_state='1' 
+		order by year_sales desc	
+	</select>
+	
+	<select id='getAllParametersByParent' parameterType="goodsParameterBean" resultType="goodsParameterBean">
+		select * from tst_goods_parameter where 
+		is_delete='0' and parent_id=#{parent_id} and parameter_type=#{parameter_type}
+		and (goods_id=#{goods_id} or goods_id='-1')
+		order by sort asc
+	</select>
+	
+	<select id="getAllServiceByParent" parameterType="goodsServiceBean" resultType="goodsServiceBean">
+		select * from tst_goods_service where 
+		is_delete='0' and parent_id=#{parent_id} and service_type=#{service_type}
+		and goods_id=#{goods_id}
+		order by sort asc
+	</select>
+	
+	<select id="getGoodsParameterBeansByArray" parameterType="String" resultType="goodsParameterBean">
+		select * from tst_goods_parameter where parameter_id in <foreach item="item" index="index" collection="ids" 
+	open="(" separator="," close=")">
+	#{item}
+	</foreach>
+	</select>
+	
+	<select id="getGoodsClassById" parameterType="goodsBean" resultType="goodsBean">
+		select * from tst_goods where is_delete='0' and goods_id=#{goods_id} and goods_type='1'
+		order by sort asc
+	</select>
+	
+	<select id="getGoodsClassParent" parameterType="goodsBean" resultType="goodsBean">
+		select goods_id,goods_name,goods_uuid
+			from tst_goods as a
+			where a.goods_type=#{goods_type}
+			<if test='is_import != null and is_import != "" '>
+			    and a.is_import=#{is_import}
+		    </if>
+			and a.is_delete ='0' and a.parent_id=#{parent_id}
+			order by sort asc
+	</select>
+	
+	<!--<select id="getGoodsClassParentPage" parameterType="goodsBean" resultType="goodsBean">
+		select goods_id,goods_name,goods_img,goods_uuid,
+			(select case when count(*)>0 then "0" else "1" end from tst_goods where parent_id=a.goods_id AND
+			 goods_type=#{goods_type} and is_delete='0') as is_end
+			 ,(select count(*) from tst_goods 
+					where goods_type='2' and is_delete='0' and goods_state='1' and merchants_id!='1'
+					and goods_parent_uuid like concat('%',a.goods_uuid,'%')) as goods_count
+			from tst_goods as a
+			where a.goods_type=#{goods_type}
+			<if test="goods_uuid!=null and goods_uuid!=''">
+			    and a.goods_uuid like concat('%',#{goods_uuid},'%')
+			</if>
+			<if test='is_import != null and is_import != "" '>
+			    and a.is_import=#{is_import}
+		    </if>
+			and a.is_delete ='0' and a.parent_id=#{parent_id} and a.goods_state='1'
+			order by sort asc
+	</select> -->
+	
+	
+	
+	<select id="getGoodsClassParentV2" parameterType="goodsBean" resultType="Map">
+		select goods_id,goods_name,goods_uuid,
+			(select case when count(*)>0 then "0" else "1" end from tst_goods where parent_id=a.goods_id AND
+			 goods_type=#{goods_type} and is_delete='0') as is_end
+			 ,(select count(*) from tst_goods 
+			where goods_type='2' and is_delete='0' and goods_state='1' 
+			and goods_parent_uuid like concat('%',a.goods_uuid,'%')) as goods_count
+			from tst_goods as a
+			where a.goods_type=#{goods_type}
+			and a.is_delete ='0' and a.parent_id=#{parent_id}
+			order by sort asc
+	</select>
+	
+	<select id='getActivityByClass' parameterType="goodsBean" resultType="activityBean">
+		select DISTINCT c.* from tst_goods as a
+		inner join tst_activity_goods as b on a.goods_id=b.goods_id and b.is_delete='0'
+		inner join tst_activity as c on b.activity_id=c.activity_id and c.is_delete='0'
+		where a.goods_type='2' and a.goods_state='1' 
+		and a.is_delete='0' and a.goods_parent_uuid like concat("%",#{goods_uuid},"%")
+	</select>
+	
+	
+	<select id='getClassByBrand3' parameterType="goodsBean" resultType="goodsBean">
+		select DISTINCT b.* from tst_goods as a 
+		inner join tst_goods as b on a.parent_id=b.goods_id and b.parent_id=#{parent_id}
+		where 1=1 
+		<if test=' brand_id != null and brand_id != "" '>
+			and a.brand_id=#{brand_id}
+		</if>
+	</select>
+	
+	<select id='getClassByBrand2' parameterType="goodsBean" resultType="goodsBean">
+		select DISTINCT c.* from tst_goods as a 
+		inner join tst_goods as b on a.parent_id=b.goods_id
+		inner join tst_goods as c on b.parent_id=c.goods_id and c.parent_id=#{parent_id}
+		where 1=1
+		<if test=' brand_id != null and brand_id != "" '>
+			and a.brand_id=#{brand_id}
+		</if>
+	</select>
+	
+	<select id='getClassByBrand1' parameterType="goodsBean" resultType="goodsBean">
+		select DISTINCT d.* from tst_goods as a 
+		inner join tst_goods as b on a.parent_id=b.goods_id
+		inner join tst_goods as c on b.parent_id=c.goods_id
+		inner join tst_goods as d on c.parent_id=d.goods_id and d.parent_id=#{parent_id}
+		where 1=1 
+		<if test=' brand_id != null and brand_id != "" '>
+			and a.brand_id=#{brand_id}
+		</if>
+	</select>
+	
+	<select id='getAllBrandByClass' parameterType="goodsBean" resultType="brandBean">
+		select DISTINCT b.* from tst_goods as a
+		inner join tst_brand as b on a.brand_id=b.brand_id and b.is_delete='0'
+		where a.goods_type='2' and a.goods_state='1' 
+		and a.is_delete='0' and a.goods_parent_uuid like concat("%",#{goods_uuid},"%")
+	</select>
+	
+	<select id='getAllGoodsLabelByClass' parameterType="goodsBean" resultType="goodsLabelBean">
+		select DISTINCT c.* from tst_goods as a
+		inner join tst_goods_relation_label as b on a.goods_id=b.goods_id and b.is_delete='0'
+		inner join tst_goods_label as c on b.label_id=c.label_id and c.is_delete='0'
+		where a.goods_type='2' and a.goods_state='1' 
+		and a.is_delete='0' and a.goods_parent_uuid like concat("%",#{goods_uuid},"%")
+	</select>
+	
+	<select id="getAllStoreHouseByClass" parameterType="goodsBean" resultType="storeHouseBean">
+		select DISTINCT b.* from tst_goods as a
+		inner join tst_goods_storehouse as b on a.goods_storehouse=b.storehouse_name and b.is_delete='0'
+		where a.goods_type='2' and a.goods_state='1' 
+		and a.is_delete='0' and a.goods_parent_uuid like concat("%",#{goods_uuid},"%")
+	</select>
+	
+	<select id='searchGoodsDetailList' parameterType="goodsBean" resultType="goodsBean">
+		select * from (	
+		select *
+		from (		
+			select DISTINCT a.*
+		 	from tst_goods as a 
+		<if test=' business_id != null and business_id != "" and business_id != "-1" '>
+			inner join tst_business_goods as b 
+			on a.goods_id=b.goods_id and b.is_delete='0' and b.merchants_id=#{business_id}
+		</if>
+		
+		<if test=' activity_id != null and activity_id != "" '>
+			inner join tst_activity_goods  as c on a.goods_id=c.goods_id
+			and FIND_IN_SET(c.activity_id,#{activity_id}) and c.is_delete='0'
+		</if>
+		
+		<if test=' storehouse_name != null and storehouse_name != "" '>
+			inner join tst_goods_storehouse as d on a.goods_storehouse=d.storehouse_name
+			and FIND_IN_SET(d.storehouse_name,#{storehouse_name})  and d.is_delete='0'
+		</if>
+		
+		<if test=' label_id != null and label_id != "" '>
+			inner join tst_goods_relation_label as f 
+			on a.goods_id=f.goods_id and FIND_IN_SET(f.label_id,#{label_id}) and f.is_delete='0'
+		</if>
+		where a.is_delete='0' and a.goods_state='1'
+		and a.goods_type='2' 
+		
+		<if test='goods_uuid != null and goods_uuid != "" '>
+			and a.goods_parent_uuid like CONCAT('%',#{goods_uuid},'%')
+		</if>
+		
+		<if test='goods_name!= null and goods_name!="" '>
+			and a.goods_name like concat('%',#{goods_name},'%')
+		</if>
+		
+		<if test='is_business_buy != null and is_business_buy == "1" '>
+			and a.is_business_buy ='1'
+		</if>
+		
+		<if test=" brand_id != null and brand_id != ''">
+			and FIND_IN_SET(a.brand_id,#{brand_id})
+		</if>
+		
+		<if test=" is_group_buy != null and is_group_buy == '1' ">
+			and a.is_group_buy='1'
+		</if>
+		
+		<if test=" is_pre_sale != null and is_pre_sale == '1' ">
+			and a.is_pre_sale='1'
+		</if>
+		
+		<if test=' min_price != null and min_price != "" '>
+			<if test="sort!='' and sort!=null and sort=='pc_price'">
+				and convert(goods_pc_price,double) >convert(#{min_price},double)
+			</if>
+			<if test="sort!='' and sort!=null and sort=='price'">
+				and convert(goods_now_price,double) >convert(#{min_price},double)
+			</if>
+		</if>
+		
+		<if test=' max_price != null and max_price != "" '>
+			<if test="sort!='' and sort != null and sort=='price'">
+				and convert(#{max_price},double) >convert(goods_now_price,double)
+			</if>
+			<if test="sort!='' and sort != null and sort=='pc_price'">
+				and convert(#{max_price},double) >convert(goods_pc_price,double)
+			</if>
+		</if>
+		
+		) as a where 1=1
+		
+		)as a where 1=1
+		<if test=" sort=='' or sort==null or sort=='default' ">
+			order by a.sort_time desc
+		</if>
+		
+		<if test="sort != '' and sort != null and sort== 'assessment' ">
+			order by a.assessment_count desc
+		</if>
+		
+		<if test="sort != '' and sort != null and sort== 'sales' ">
+			order by a.year_sales desc
+		</if>
+		
+		<if test="sort!='' and sort!=null and sort=='price'">
+			<if test="sort_way=='' or sort_way==null or sort_way=='asc'">
+				order by a.goods_now_price asc
+			</if>
+			<if test="sort_way!='' and sort_way!=null and sort_way=='desc'">
+				order by a.goods_now_price desc
+			</if>
+		</if>	
+		<if test=" sort!='' and sort!=null and sort=='pc_price' ">
+			<if test="sort_way=='' or sort_way==null or sort_way == 'asc'">
+				order by a.goods_pc_price asc
+			</if>
+			<if test=" sort_way !='' and sort_way != null and sort_way == 'desc'">
+				order by a.goods_pc_price desc
+			</if>
+		</if>	
+	</select>
+	<select id='getGoodsStandards' parameterType="standardBean" resultType="standardBean">
+		select * from tst_goods_standard
+		where is_delete='0' and goods_id=#{goods_id} and standard_desc is not null and standard_desc != ''
+		order by sort asc
+	</select>
+	
+	<select id='getGoodsImgs' parameterType="goodsImgBean" resultType="goodsImgBean">
+		select * from tst_goods_img
+		where goods_id=#{goods_id} 
+		order by sort asc
+	</select>
+	
+	<update id="updateGoodsDetailSeenum" parameterType="goodsBean">
+		update tst_goods
+		set see_num=(case when see_num is null then 0 else see_num end)+1
+		where goods_id=#{goods_id}
+	</update>
+	
+	<!--  select d.brand_name,a.*,b.express_free_price
+		,c.collection_id,(case when c.collection_id is null then "0" else "1" end)
+		as is_collection
+		,(select count(*) from tst_group_buy_member
+		where goods_id=a.goods_id and is_delete='0' and CONVERT(group_buy_now_people,double)>0 )as group_buy_count
+		,(select count(*) from tst_group_buy_member as d
+		inner join tst_group_buy_goods as f on d.goods_group_buy_id=f.goods_group_buy_id
+		and CONVERT(group_buy_need_people,double)>CONVERT(group_buy_now_people,double) 
+		where d.goods_id=a.goods_id and d.is_delete='0' and d.end_time > now() and CONVERT(d.group_buy_now_people,double)>0)	
+		as group_buy_now_count
+		,(select group_concat(parameter_name) from tst_goods_parameter
+		where FIND_IN_SET(parameter_id,(select goods_parameters from tst_goods where goods_id=#{goods_id}))) as goods_parameters_name
+		from tst_goods as a
+		inner join tst_merchants as b on a.merchants_id=b.merchants_id and b.is_delete='0'
+		left join tst_collection as c 
+		on a.goods_id=c.relation_id and c.collection_type='goods'
+		and c.is_delete='0' and c.member_id=#{member_id}
+		left join tst_brand as d on a.brand_id=d.brand_id and d.is_delete='0'
+		where a.goods_id=#{goods_id}
+		and a.goods_type='2' and a.is_delete='0'-->
+		
+		
+	<select id="getOneGoodsDetail" parameterType="goodsBean" resultType="goodsBean">
+		select d.brand_name,a.*,b.express_free_price
+		,c.collection_id,(case when c.collection_id is null then "0" else "1" end)
+		as is_collection
+		,(select count(*) from tst_group_buy_member
+		where goods_id=a.goods_id and is_delete='0' and CONVERT(group_buy_now_people,double)>0 )as group_buy_count
+		,(select count(*) from tst_group_buy_member as d
+		inner join tst_group_buy_goods as f on d.goods_group_buy_id=f.goods_group_buy_id
+		and CONVERT(group_buy_need_people,double)>CONVERT(group_buy_now_people,double) 
+		where d.goods_id=a.goods_id and d.is_delete='0' and d.end_time > now() and CONVERT(d.group_buy_now_people,double)>0)	
+		as group_buy_now_count
+		,(select group_concat(parameter_name) from tst_goods_parameter
+		where FIND_IN_SET(parameter_id,(select goods_parameters from tst_goods where goods_id=#{goods_id}))) as goods_parameters_name
+		from tst_goods as a
+		inner join tst_merchants as b on a.merchants_id=b.merchants_id and b.is_delete='0'
+		left join tst_collection as c 
+		on a.goods_id=c.relation_id and c.collection_type='goods_supply'
+		and c.is_delete='0' and c.member_id=#{member_id}
+		left join tst_brand as d on a.brand_id=d.brand_id and d.is_delete='0'
+		where a.goods_id=#{goods_id}
+		and a.goods_type='2' and a.is_delete='0'
+		<!-- and a.goods_state='1' and a.is_delete='0' -->
+	</select>
+	
+	<select id="getBrandDetail" parameterType="brandBean" resultType="brandBean">
+		select * from tst_brand where brand_id=#{brand_id}
+		and is_delete='0'
+	</select>
+	<select id="getBrandPackageByBrand" parameterType="brandPackageBean" resultType="brandPackageBean">
+		select * from tst_brand_package
+		where brand_id=#{brand_id} and is_delete='0'
+	</select>
+	<select id="getBrandPackageImgs" parameterType="brandPackageImgBean" resultType="brandPackageImgBean">
+		select * from tst_brand_package_img
+		where package_id=#{package_id} and is_delete='0'
+	</select>
+	<select id="getBrandPackageGoods" parameterType="brandPackageGoodsBean" resultType="brandPackageGoodsBean">
+		select * from tst_brand_package_goods
+		where package_id=#{package_id} and is_delete='0'
+	</select>
+	<select id="getBrandPackageGoodsDetail" parameterType="brandPackageBean" resultType="brandPackageBean">
+		select * from tst_brand_package
+		where package_id=#{package_id} and is_delete='0'
+	</select>
+
+	<select id='getGroupBuyGoodss' parameterType="groupBuyGoodsBean" resultType="groupBuyGoodsBean">
+		select * from tst_group_buy_goods where is_delete='0'
+		and goods_id=#{goods_id}
+	</select>
+
+	<!-- 顺手拍 -->
+	
+	<select id="getAllGoods" parameterType="goodsBean" resultType="goodsBean">
+		select * from tst_goods 
+		where is_delete='0' and goods_state='1'  and goods_type='2'
+	</select>
+	
+	<select id="getSSPGoodsClass" parameterType="sspClassBean" resultType="sspClassBean">
+		select * from tst_ssp_class
+		where is_delete='0' 
+		<if test=' class_type != null and class_type != "" '>
+			and class_type=#{class_type}
+		</if>
+		order by sort asc
+	</select>
+	
+	<select id="getPromotionGoods" parameterType="goodsBean" resultType="goodsBean">
+		select * from tst_goods 
+		where is_delete='0' and ssp_promotion='1' 
+		and goods_state='1'  and goods_type='2'
+		<if test='class_id != null and class_id != "" '>
+			and ssp_promotion_id = #{class_id}
+		</if>
+		order by sort_time desc
+	</select>
+		
+	<select id="getGiftGoods" parameterType="goodsBean" resultType="goodsBean">
+		select * from tst_goods 
+		where is_delete='0' and ssp_gift='1' and goods_state='1'  and goods_type='2'
+		<if test='class_id != null and class_id != "" '>
+			and ssp_gift_id = #{class_id}
+		</if>
+		order by sort_time desc
+	</select>
+	
+	<select id="getFreshGoods" parameterType="goodsBean" resultType="goodsBean">
+		select * from tst_goods 
+		where is_delete='0' and ssp_fresh='1' and goods_state='1'  and goods_type='2'
+		<if test='class_id != null and class_id != "" '>
+			and ssp_fresh_id = #{class_id}
+		</if>
+		order by sort_time desc
+	</select>
+	
+	<select id="getBabyGoods" parameterType="goodsBean" resultType="goodsBean">
+		select * from tst_goods 
+		where is_delete='0' and ssp_baby='1' and goods_state='1'  and goods_type='2'
+		<if test='class_id != null and class_id != "" '>
+			and ssp_baby_id = #{class_id}
+		</if>
+		order by sort_time desc
+	</select>
+	
+	
+	<select id="getLadyGoods" parameterType="goodsBean" resultType="goodsBean">
+		select * from tst_goods 
+		where is_delete='0' and ssp_lady='1' and goods_state='1'  and goods_type='2'
+		<if test='class_id != null and class_id != "" '>
+			and ssp_lady_id = #{class_id}
+		</if>
+		order by sort_time desc
+	</select>
+	
+	<select id="getFeatureGoods" parameterType="goodsBean" resultType="goodsBean">
+		select * from tst_goods 
+		where is_delete='0' and ssp_feature='1' and goods_state='1'  and goods_type='2'
+		<if test='class_id != null and class_id != "" '>
+			and ssp_feature_id = #{class_id}
+		</if>
+		order by sort_time desc
+	</select>
+	
+	<select id="getImportGoods" parameterType="goodsBean" resultType="goodsBean">
+		select * from tst_goods 
+		where is_delete='0' and ssp_import='1' and goods_state='1'  and goods_type='2'
+		<if test='class_id != null and class_id != "" '>
+			and ssp_import_id = #{class_id}
+		</if>
+		order by sort_time desc
+	</select>
+	
+	<!-- 家纺 -->
+	<select id="getNewHotGoods"  parameterType="goodsBean" resultType="goodsBean">
+		select * from tst_goods where is_delete='0'  and goods_type='2'
+		and goods_state='1' and is_new='1' 
+	</select>
+	
+	<select id='getHomeHotGoods' parameterType="goodsBean" resultType="goodsBean">
+		select * from tst_goods where is_delete='0'  and goods_type='2'
+		and goods_state='1' and is_hot='1' and is_recommend='1'
+	</select>
+	
+	<select id='getHomeSellingGoods' parameterType="goodsBean" resultType="goodsBean">
+		select * from tst_goods where is_delete='0'  and goods_type='2'
+		and goods_state='1' and is_selling='1' and is_recommend='1'
+	</select>
+	
+	<select id='getClassHotGoods' parameterType="goodsBean" resultType="goodsBean">
+		select a.* from tst_goods as a 
+		<if test=' business_id != null and business_id != "" and business_id != "-1" '>
+			inner join tst_business_goods as b 
+			on a.goods_id=b.goods_id and b.is_delete='0' and b.merchants_id=#{business_id}
+		</if>
+		where a.is_delete='0' 
+		and a.goods_type='2'
+		and a.goods_state='1' and a.is_hot='1' and a.goods_parent_uuid like concat('%',#{goods_uuid},'%')
+		
+	</select>
+	
+	<select id='getClassSellingGoods' parameterType="goodsBean" resultType="goodsBean">
+		select a.* from tst_goods as a 
+		<if test=' business_id != null and business_id != "" and business_id != "-1" '>
+			inner join tst_business_goods as b 
+			on a.goods_id=b.goods_id and b.is_delete='0' and b.merchants_id=#{business_id}
+		</if>
+		where a.is_delete='0' 
+		and a.goods_type='2'
+		and a.goods_state='1' and a.is_selling='1' and a.goods_parent_uuid like concat('%',#{goods_uuid},'%')
+
+	</select>
+	
+	<select id="getClassPriceSortGoods" parameterType="goodsBean" resultType="goodsBean">
+		select a.* from tst_goods as a 
+		<if test=' business_id != null and business_id != "" and business_id != "-1" '>
+			inner join tst_business_goods as b 
+			on a.goods_id=b.goods_id and b.is_delete='0' and b.merchants_id=#{business_id}
+		</if>
+		where a.is_delete='0' 
+		and a.goods_type='2'
+		and a.goods_state='1' and a.goods_parent_uuid like concat('%',#{goods_uuid},'%')
+		
+		<if test='sort_way!=null and sort_way=="desc" '>
+			order by a.goods_now_price desc
+		</if>
+		<if test='sort_way!=null and sort_way=="asc" '>
+			order by a.goods_now_price asc
+		</if>
+	</select>
+	
+	<!-- 欧联 -->
+	<!-- 查询商品数据类别 -->
+	<select id="getGoodsCategories" resultType="goodsCategoriesBean">
+	     select * from tst_goods_categories
+	</select>
+	
+	<!-- 查询单个品牌信息 -->
+	<select id="getOneBrandDateil" parameterType="goodsBean" resultType="goodsBean">
+	     select * from tst_goods where 
+	     <if test="goods_id!=null and goods_id!=''">
+	         goods_id=#{goods_id} and
+	     </if>
+	     <if test="goods_uuid!=null and goods_uuid!=''">
+	         goods_uuid like concat('%',#{goods_uuid},'%') and
+	     </if>
+	      is_delete='0' and goods_state='1'
+	</select>
+	
+	<!-- 查询该商品是否可供应（平台是否有该商品） -->  
+	<select id="getGoodsIsSupply" parameterType="goodsBean" resultType="goodsBean">
+	     select b.goods_name as brand_name,a.* from tst_goods a
+           left join tst_goods b on a.parent_id = b.goods_id
+	       where a.merchants_id='1' and a.goods_name=#{goods_name}
+	       and a.goods_state='1' and a.goods_type='2' and a.is_delete='0'
+	</select>
+	
+	<!-- 查询该商品客户是否已经供应 -->
+	<select id="getGoodsMerchantsIsSupply" parameterType="goodsBean" resultType="goodsBean">
+	      select * from tst_goods
+	        where 1=1
+	      <if test="merchants_id !=null and merchants_id!=''">
+	         and  merchants_id=#{merchants_id}
+	      </if>
+	      and goods_name=#{goods_name}
+	      and goods_state='1' and goods_type='2' and is_delete='0'	       
+	</select>
+	
+	
+	<insert id="addGoodsSupplys" parameterType="goodsBean"> 
+		insert into tst_goods
+		(merchants_id,goods_stock,goods_name,min_pack_num,goods_type,goods_no,goods_state,create_time,update_time)
+		select merchants_id,record_stock,record_name,record_min_pack_num,'2',#{goods_no},'1',NOW(),
+		ADDDATE(NOW(),INTERVAL (select goods_down_time from tst_host_url) day)
+		from tst_log_record
+		where record_no=#{goods_no}
+		and record_name not in (select goods_name from tst_goods
+		where merchants_id=#{merchants_id} and is_delete='0')
+		group by record_name
+	</insert>
+	
+	<!-- 发布商品供应 -->
+	<insert id="addGoodsSupply" parameterType="goodsBean" useGeneratedKeys="true" keyProperty="goods_id">
+	     insert into tst_goods
+	     <trim prefix="(" suffix=")" suffixOverrides=",">
+           <if test="merchants_id!= null and merchants_id!=''">
+              merchants_id,
+           </if>
+           <if test="min_pack_num!= null and min_pack_num!=''">
+              min_pack_num,
+           </if>
+           <if test="goods_stock!= null and goods_stock!=''">
+              goods_stock,
+           </if>
+           <if test="goods_name!=null and goods_name!=''">
+              goods_name,
+           </if>
+           <if test="goods_type!= null and goods_type!=''">
+              goods_type,
+           </if>
+           <if test="goods_state!= null and goods_state!=''">
+              goods_state,
+           </if>
+           <if test="parent_id!= null and parent_id!=''">
+              parent_id,
+           </if>
+           <if test="goods_uuid!= null and goods_uuid!=''">
+              goods_uuid,
+           </if>
+           <if test="goods_parent_uuid!= null and goods_parent_uuid!=''">
+              goods_parent_uuid,
+           </if>
+           <if test="is_delete!= null and is_delete!=''">
+              is_delete,
+           </if>
+           <if test="create_time!= null and create_time!=''">
+              create_time,
+           </if>
+           <if test="is_approved!= null and is_approved!=''">
+              is_approved,
+           </if>
+       </trim>
+       <trim prefix="values (" suffix=")" suffixOverrides=",">
+           <if test="merchants_id!= null and merchants_id!=''">
+              #{merchants_id},
+           </if>
+           <if test="min_pack_num!= null and min_pack_num!=''">
+              #{min_pack_num},
+           </if>
+           <if test="goods_stock!= null and goods_stock!=''">
+              #{goods_stock},
+           </if>
+           <if test="goods_name!=null and goods_name!=''">
+              #{goods_name},
+           </if>
+           <if test="goods_type!= null and goods_type!=''">
+              #{goods_type},
+           </if>
+           <if test="goods_state!= null and goods_state!=''">
+              #{goods_state},
+           </if>
+           <if test="parent_id!= null and parent_id!=''">
+              #{parent_id},
+           </if>
+           <if test="goods_uuid!= null and goods_uuid!=''">
+              #{goods_uuid},
+           </if>
+           <if test="goods_parent_uuid!= null and goods_parent_uuid!=''">
+              CONCAT(case when (select a.goods_parent_uuid from (
+				select goods_parent_uuid  
+				from tst_goods where goods_id=#{parent_id}
+				) a) is null then "" else 
+				(select a.goods_parent_uuid from (
+				select goods_parent_uuid  
+				from tst_goods where goods_id=#{parent_id}
+				) a) end,"#",#{goods_uuid}),
+           </if>
+           <if test="is_delete!= null and is_delete!=''">
+              #{is_delete},
+           </if>
+           <if test="create_time!= null and create_time!=''">
+              #{create_time},
+           </if>
+           <if test="is_approved!= null and is_approved!=''">
+              #{is_approved},
+           </if>
+       </trim>
+	</insert>
+	
+	<!-- 查询商品供应总数据 -->
+	<select id="getGoodsData" parameterType="goodsBean" resultType="goodsBean">
+	     select b.goods_name as brand_name,a.* from tst_goods as a
+			left join tst_goods as b on a.parent_id=b.goods_id and b.is_delete='0'			
+			where a.merchants_id='1' and a.goods_name=#{goods_name} and a.goods_type='2'
+			and a.goods_state='1' and a.is_delete='0' 
+	</select>
+	
+	<resultMap id="list" type="goodsBean"> 
+		<result column="goods_id" property="goods_id"/>
+		<result column="goods_name" property="goods_name"/>
+		<result column="min_pack_num" property="min_pack_num"/>
+		<result column="merchants_id" property="merchants_id"/>
+		<result column="update_time" property="update_time"/>
+		
+		<result column="min_buy_num" property="min_buy_num"/>
+		<result column="goods_stock" property="goods_stock"/>
+		<result column="goods_state" property="goods_state"/>
+		<result column="parent_id" property="parent_id"/>
+		<result column="create_time" property="create_time"/>
+		<result column="update_time" property="update_time"/>
+        <association property="supplyDataBeans"  resultMap="list2">
+        </association>  
+    </resultMap>
+    
+    <resultMap type="goodsSupplyDataBean" id="list2">
+    	<result column="supply_id" property="supply_id"/>
+        <result column="supply_goods_id" property="goods_id"/>
+        <result column="supply_goods_name" property="goods_name"/>
+        <result column="supply_goods_stock" property="goods_stock"/>
+        <result column="supply_min_buy_num" property="min_buy_num"/>
+        <result column="supply_goods_unit_price" property="goods_unit_price"/>
+        <result column="supply_data_categories" property="data_categories"/>
+        <result column="supply_give_time" property="give_time"/>
+        <result column="supply_is_delete" property="is_delete"/>
+        <result column="supply_create_time" property="create_time"/>
+        <result column="supply_update_time" property="update_time"/>
+        <result column="supply_validity_day" property="validity_day"/>
+        <result column="supply_validity_hour" property="validity_hour"/>
+        <result column="supply_validity_minute" property="validity_minute"/>
+        
+    </resultMap>
+    
+    <select id="getSupplyGoodsBeansCount" parameterType="goodsBean" resultType="int">
+    	select  count(*) from tst_goods a 
+			join tst_member b
+	        on a.merchants_id = b.merchants_id	and b.is_delete='0' and b.is_freeze='0'	
+			where a.merchants_id!='1' and a.goods_name=#{goods_name}
+				    and a.goods_type='2' and a.goods_state='1' and a.is_delete='0' 
+    </select>
+	<!-- 查询除平台外该商品数据 -->
+	<select id="getSupplyGoodsBeans" parameterType="goodsBean" resultMap="list">
+	   select a.goods_id,a.goods_name,a.member_level,a.update_time,
+	   a.min_pack_num,a.merchants_id,
+			       a.collection_id,a.is_collection 
+		,b.supply_id,b.goods_id as supply_goods_id,b.goods_name as supply_goods_name,
+		b.goods_stock as supply_goods_stock,b.min_buy_num as supply_min_buy_num,
+		b.goods_unit_price as supply_goods_unit_price,b.data_categories as supply_data_categories,
+		b.give_time as supply_give_time,b.is_delete as supply_is_delete ,b.create_time as supply_create_time,
+		TIMESTAMPDIFF(DAY,now(),b.update_time) as supply_validity_day,
+		TIMESTAMPDIFF(HOUR,now(),b.update_time) as supply_validity_hour,
+		TIMESTAMPDIFF(MINUTE,now(),b.update_time) as supply_validity_minute,
+		b.update_time as supply_update_time
+		from(
+		    select  a.goods_id,a.goods_name,b.member_level,a.update_time,a.create_time,
+		    		a.min_pack_num,a.merchants_id,
+			       c.collection_id,(case when c.collection_id is null then "0" else "1" end) as is_collection
+			from tst_goods a 
+			left join tst_collection as c 
+					on a.goods_id=c.relation_id and c.collection_type='goods_supply'
+					and c.is_delete='0' and c.member_id=#{member_id}
+			join tst_member b
+	        on a.merchants_id = b.merchants_id	and b.is_delete='0' and b.is_freeze='0'	
+			where a.merchants_id!='1' and a.goods_name=#{goods_name}
+				    and a.goods_type='2' and a.goods_state='1' and a.is_delete='0' 
+				    <if test="goods_stock!=null and goods_stock!=''">
+				         and a.goods_stock&gt;=#{goods_stock}
+				    </if>
+			order by b.member_level desc,a.update_time desc
+	    )as a
+	    join tst_goods_supply_data  as b 
+	    on a.goods_id=b.goods_id
+	     where b.is_delete='0' 
+	       and  TIMESTAMPDIFF(MINUTE,now(),b.update_time)>='0' 
+         <if test="data_categories!=null and data_categories!=''">
+              and b.data_categories=#{data_categories}
+          </if>
+          <if test="data_categories==null or data_categories==''">
+              and (b.data_categories='2' or b.goods_stock!='0')
+          </if>
+          order by a.member_level desc, b.update_time desc
+         
+	</select>
+	<!-- 查询商品的供应数据 -->
+     <select id="getGoodsSupplyData" parameterType="goodsSupplyDataBean" resultType="goodsSupplyDataBean">
+          select * from tst_goods_supply_data 
+          where goods_id=#{goods_id} 
+          <if test="data_categories!=null and data_categories!=''">
+              and data_categories=#{data_categories}
+          </if>
+          and is_delete='0'
+          and (goods_stock !='0'  or data_categories='2')
+          order by data_categories,goods_unit_price desc
+     </select>
+	
+	<select id="getMemberGoodsListCount" parameterType="goodsBean" resultType="int">
+		 select 
+		count(*)
+		from tst_goods 
+		where 
+		goods_type='2'
+		and is_delete='0'
+		and merchants_id=#{merchants_id}
+		<if test="goods_name!=null and goods_name!=''">
+		     and goods_name like concat('%',#{goods_name},'%')
+		</if>
+		<if test="goods_state!=null and goods_state!=''">
+		     and goods_state=#{goods_state}
+		</if>
+	</select>
+	<!-- 查询用户商品列表 -->
+	<select id="getMemberGoodsList" parameterType="goodsBean" resultMap="list">
+      select a.goods_id,a.goods_name,a.merchants_id,a.min_buy_num,a.min_pack_num,a.goods_stock,a.goods_state,a.parent_id,a.create_time,
+		a.update_time
+		,b.supply_id,b.goods_id as supply_goods_id,b.goods_name as supply_goods_name,
+		b.goods_stock as supply_goods_stock,b.min_buy_num as supply_min_buy_num,
+		b.goods_unit_price as supply_goods_unit_price,b.data_categories as supply_data_categories,
+		b.give_time as supply_give_time,b.is_delete as supply_is_delete ,b.create_time as supply_create_time, 
+		b.update_time as supply_update_time  from 
+	  (
+	    select 
+		goods_id,goods_name,merchants_id,min_buy_num,min_pack_num,goods_stock,goods_state,parent_id,create_time,
+		update_time
+		from tst_goods 
+		where 
+		goods_type='2'
+		and is_delete='0'
+		and merchants_id=#{merchants_id}
+		<if test="goods_name!=null and goods_name!=''">
+		     and goods_name like concat('%',#{goods_name},'%')
+		</if>
+		<if test="goods_state!=null and goods_state!=''">
+		     and goods_state=#{goods_state}
+		</if>
+		order by create_time desc,goods_id asc
+		limit #{page},#{limit}
+	) as a 
+		inner join tst_goods_supply_data as b
+		on a.goods_id=b.goods_id
+        and b.is_delete='0'
+  		<if test="data_categories!=null and data_categories!=''">
+              and b.data_categories=#{data_categories}
+        </if>
+		order by a.create_time desc,a.goods_id asc
+		
+	</select>
+
+	
+	<!-- 根据品牌查询商品  （分页）-->
+	<select id="getGoodsByBrandPage" parameterType="goodsBean" resultType="goodsBean">
+			select count(*) as count,a.goods_id,a.goods_name,a.goods_img,a.replace_name,b.goods_name as brand_name,b.goods_img as brand_img
+		from tst_goods a
+					left join tst_goods b
+					on a.parent_id = b.goods_id
+		left join tst_order_goods as c
+		on a.goods_name=c.goods_name 
+		where a.is_delete='0' and a.goods_state='1' and a.goods_type='2' 
+		and a.merchants_id='1' 
+		<if test='goods_uuid != null and goods_uuid != "" '>
+					and a.goods_parent_uuid like CONCAT('%',#{goods_uuid},'%')
+		</if>
+		group by a.goods_id
+		order by count desc
+
+	   <!--  select a.goods_id,a.goods_name,a.goods_img,a.replace_name,b.goods_name as brand_name,b.goods_img as brand_img
+			from tst_goods a
+			left join tst_goods b
+			on a.parent_id = b.goods_id
+				    where a.is_delete='0' and a.goods_state='1'
+					  and a.goods_type='2' 
+			      and a.merchants_id='1'   
+		<if test='goods_uuid != null and goods_uuid != "" '>
+			and a.goods_parent_uuid like CONCAT('%',#{goods_uuid},'%')
+		</if>
+		order by a.create_time desc -->
+	</select>
+	
+	<!-- 修改商品信息 -->
+	<update id="updateGoodsDateil" parameterType="goodsBean">
+	     update tst_goods 
+         <set>
+		     <if test="goods_stock!=null and goods_stock!=''">
+		          goods_stock=#{goods_stock},
+		     </if>
+		     <if test="min_pack_num!=null and min_pack_num!=''">
+		          min_pack_num=#{min_pack_num},
+		     </if>
+		     <if test="goods_state!=null and goods_state!=''">
+		          goods_state=#{goods_state},
+		     </if>
+		     <if test="goods_picture_img !=null and goods_picture_img !=''">
+		          goods_picture_img=#{goods_picture_img},
+		     </if>
+		     <if test="goods_stanard_img !=null and goods_stanard_img !=''">
+		          goods_stanard_img=#{goods_stanard_img},
+		     </if>
+		     <if test="goods_report_img !=null and goods_report_img !=''">
+		          goods_report_img=#{goods_report_img},
+		     </if>
+		     update_time=ADDDATE(NOW(),INTERVAL (select goods_down_time from tst_host_url) day)
+		 </set>
+	     where goods_id=#{goods_id}
+	</update>
+	
+	<!-- 查询商品供应总数据（商家型号点进去） -->
+	<select id="getMerchantsGoodsData" parameterType="goodsBean" resultType="goodsBean">
+	     select a.*,b.goods_name as brand_name,
+	        c.collection_id,(case when c.collection_id is null then "0" else "1" end) as is_collection
+			from tst_goods a 
+			left join tst_goods d on a.goods_name = d.goods_name and d.merchants_id='1' and d.is_delete='0'
+			left join tst_goods b on d.parent_id = b.goods_id
+			left join tst_collection as c 
+				on a.goods_id=c.relation_id and c.collection_type='goods_supply'
+				and c.is_delete='0' and c.member_id=#{member_id}
+			where 
+			<if test="merchants_id!=null and merchants_id!=''">
+			    a.merchants_id=#{merchants_id} and 
+			</if>
+			a.goods_id=#{goods_id} and a.goods_type='2'
+			and a.goods_state='1' and a.is_delete='0' 
+	</select>
+	
+	<!-- 最新供应消息 -->
+	<select id="GetNewestSupplyInfo" parameterType="goodsBean" resultType="goodsBean">
+	
+	 	select a.goods_id,a.goods_name,a.merchants_id
+	     from tst_goods as a
+		inner join tst_goods as b 
+		on a.goods_name=b.goods_name and b.is_delete='0' and b.merchants_id='1'
+					where a.merchants_id!='1' 
+				     and a.goods_type='2' 
+				     and a.goods_state='1' 
+				     and a.is_delete='0'
+		 <if test="is_sql==null and is_sql==''">
+				     and DATE(a.create_time)=DATE(NOW())
+				 </if>
+				 <if test="is_sql!=null and is_sql=='1'">
+				     and DATE(a.create_time)=DATE(DATE_SUB(NOW(),INTERVAL 1 day))
+				 </if>
+				 <if test="is_sql!=null and is_sql=='2'">
+				     and a.create_time BETWEEN DATE_SUB(NOW(),INTERVAL 5 HOUR) and DATE_ADD(NOW(),INTERVAL 1 HOUR)
+				 </if>
+				 order by a.create_time desc  
+		limit 0,20
+	</select> 
+	
+	<!-- 热销商品列表 -->
+	<select id="getSellHotGoods" parameterType="goodsBean" resultType="goodsBean">
+	      select *
+	       from tst_goods where is_delete='0' and goods_state='1'
+			and goods_type='2' and merchants_id='1'
+				and sell_state='1'
+				order by update_time desc,create_time desc
+			limit 0,20
+	</select>
+	<!-- 批量上下架 -->
+	<update id="batchUpAndDown" parameterType="goodsBean">
+	     update tst_goods set goods_state=#{goods_state},update_time=ADDDATE(NOW(),INTERVAL (select goods_down_time from tst_host_url) day)
+	     where find_in_set(goods_id,#{goods_ids})
+	</update>
+	
+	<!-- 删除型号 -->
+	<update id="deleteGoodsName" parameterType="goodsBean">
+	     update tst_goods a,tst_goods_supply_data b set a.is_delete='1',b.is_delete='1'
+	     where a.goods_id=#{goods_id} and b.goods_id=#{goods_id}
+	</update>
+	
+	<!-- 批量删除型号 -->
+	<update id="batchDeleteGoodsName" parameterType="goodsBean">
+	     update tst_goods a,tst_goods_supply_data b set a.is_delete='1',b.is_delete='1'
+	     where find_in_set(a.goods_id,#{goods_ids}) and find_in_set(b.goods_id,#{goods_ids})
+	</update>
+	
+	<!-- 根据型号别名查询该型号 -->
+	<select id="getGoodsByAlias" parameterType="goodsBean" resultType="goodsBean">
+	     select * from tst_goods where FIND_IN_SET(#{goods_name},goods_alias) 
+         and merchants_id='1' and goods_state='1' and goods_type='2'
+         and is_delete='0'
+	</select>
+	
+	<!-- 全部删除 -->
+	<update id="allGoodsDelete" parameterType="goodsBean">
+	    update tst_goods set is_delete='1'
+	     where merchants_id=#{merchants_id}
+	</update>
+	
+	<!-- 全部上架/下架 -->
+	<update id="allGoodsStateUpdate" parameterType="goodsBean">
+	     update tst_goods set 
+	     goods_state=#{goods_state},
+	     update_time=ADDDATE(NOW(),INTERVAL (select goods_down_time from tst_host_url) day)
+	     where merchants_id=#{merchants_id}
+	</update>
+	<!-- 全部上架/下架(个人中心单个商品管理) -->
+	<update id="allGoodsSupplyStateUpdate" parameterType="goodsSupplyDataBean">
+	     update  
+	     tst_goods_supply_data  
+	     set 
+     update_time=ADDDATE(NOW(),INTERVAL (select goods_down_time from tst_host_url) day)
+     where goods_id in (
+		select goods_id from tst_goods where merchants_id=#{merchants_id} and is_delete='0' 
+		) and is_delete='0'
+	</update>
+	
+	<!-- 商家导出型号列表 -->
+	<select id="exportMemberGoodsExcel" parameterType="goodsBean" resultType="goodsBean">
+	      select a.goods_name,
+			       b.goods_stock,
+			       a.goods_state,
+			       a.min_pack_num,
+			       b.min_buy_num,
+			       b.goods_unit_price,
+			       b.data_categories,
+			       b.give_time
+			from tst_goods a
+			inner join tst_goods_supply_data b
+			on a.goods_id = b.goods_id and b.is_delete='0'
+			where a.merchants_id=#{merchants_id} and a.is_delete='0'
+	</select>
+	
+	<!-- 平台商品搜索（首页） -->
+	<select id="getGoodsDataList" parameterType="goodsBean" resultType="goodsBean">
+	      select a.goods_id,a.goods_name,a.goods_img,a.is_goods_img,a.parent_id,a.replace_name,b.goods_name as brand_name,a.goods_desc,
+			        (select
+					IFNULL(CONCAT(MIN(goods_unit_price+0),'~',MAX(goods_unit_price+0)),"暂无商家供应")as price_interval
+					from tst_goods_supply_data as f
+					inner join tst_goods as h on f.goods_id = h.goods_id and h.is_delete='0' and h.goods_state='1'
+					where f.goods_name =a.goods_name 
+					and (f.data_categories='2' or f.goods_stock!='0') 
+					and TIMESTAMPDIFF(MINUTE,now(),f.update_time)>='0' 
+					and f.is_delete='0'  
+					and f.goods_unit_price>0) price_interval,
+			       IFNULL(c.min_buy_num+0,"暂无信息")as min_buy_num,
+			       IFNULL(c.buy_num_interval+0,"暂无信息")as buy_num_interval,
+			       IFNULL(totalStock,0)as totalStock
+						from tst_goods a
+			left join tst_goods b
+			on a.parent_id = b.goods_id
+			left join (
+			select 
+					a.goods_name,
+					CONCAT(MIN(a.goods_unit_price+0),'~',MAX(a.goods_unit_price+0))as price_interval,
+					MIN(a.min_buy_num+0)as min_buy_num,
+					CONCAT(MIN(a.min_buy_num+0),'~',MAX(a.min_buy_num+0))as buy_num_interval,
+					SUM(a.goods_stock)as totalStock
+					from tst_goods_supply_data a
+					left join tst_goods b
+					on a.goods_id = b.goods_id
+					where a.goods_name like CONCAT('%',#{goods_name},'%')
+					and TIMESTAMPDIFF(MINUTE,now(),a.update_time)>='0'  and b.goods_state='1'
+					and (a.data_categories='2' or a.goods_stock!='0') 
+					and a.is_delete='0' GROUP BY a.goods_name)c
+					on a.goods_name = c.goods_name
+				<!--  left join (
+					select goods_name,SUM(goods_stock) as totalStock
+					from tst_goods
+					where goods_name like CONCAT('%',#{goods_name},'%') and merchants_id!='1' and goods_state='1'
+					and goods_type='2' and is_delete='0' GROUP BY goods_name) d
+					on a.goods_name = d.goods_name-->
+				where a.merchants_id='1' and a.goods_name like CONCAT('%',#{goods_name},'%') and a.goods_type='2'
+				and a.goods_state='1' and a.is_delete='0' GROUP BY a.goods_name
+	</select>
+	
+	<!-- 查询该品牌下供应下供应该品牌的型号 -->
+	<select id="getBrandMemberGoodsName" parameterType="goodsBean" resultType="goodsBean">
+	      select a.goods_id,a.goods_name,a.goods_stock,a.min_pack_num,a.replace_name,b.goods_img,b.parent_id,a.merchants_id from tst_goods a
+				left join tst_goods b
+				on a.goods_name = b.goods_name
+				and b.merchants_id='1' and b.is_delete='0' and b.goods_type='2' and b.goods_state='1'
+				where a.is_delete='0'
+				and a.goods_type='2'
+				and a.goods_state='1'
+				and a.merchants_id!='1'
+				and FIND_IN_SET(a.goods_name,(
+				select GROUP_CONCAT(goods_name) from 
+							tst_goods 
+							where merchants_id='1'
+				      and goods_type='2'
+				      and goods_state='1' 
+							and is_delete='0' 
+							and goods_parent_uuid like CONCAT('%',#{goods_uuid},'%')
+				))
+	</select>
+	
+	<!-- 查询可替换商品 -->
+	<select id="replaceableGoods" parameterType="goodsBean" resultType="goodsBean">
+	 select a.goods_id,a.goods_name,a.goods_img,a.parent_id,a.replace_name,b.goods_name as brand_name,
+			       IFNULL(c.price_interval,"暂无商家供应")as price_interval,
+			       IFNULL(c.min_buy_num,"暂无信息")as min_buy_num,
+			       IFNULL(c.buy_num_interval,"暂无信息")as buy_num_interval,
+			       IFNULL(totalStock,0)as totalStock
+						from tst_goods a
+			left join tst_goods b
+			on a.parent_id = b.goods_id
+			left join (
+			select 
+					goods_name,
+					CONCAT(MIN(goods_unit_price),'~',MAX(goods_unit_price))as price_interval,
+					MIN(min_buy_num)as min_buy_num,
+					CONCAT(MIN(min_buy_num),'~',MAX(min_buy_num))as buy_num_interval,
+					SUM(goods_stock)as totalStock
+					from tst_goods_supply_data 
+					where FIND_IN_SET(goods_name,#{replace_name}) and is_delete='0' GROUP BY goods_name) c
+			on a.goods_name = c.goods_name
+			where a.merchants_id='1' and FIND_IN_SET(a.goods_name,#{replace_name}) and a.goods_type='2'
+			and a.goods_state='1' and a.is_delete='0' GROUP BY a.goods_name
+	</select>
+	
+
+    <!-- 获得型号总供应数 -->
+    <select id="getTotalStock" parameterType="goodsBean" resultType="java.lang.String">
+        select IFNULL(SUM(goods_stock),0) as totalStock
+		from tst_goods
+		where goods_name=#{goods_name} and merchants_id!='1' and goods_state='1'
+		and goods_type='2' and is_delete='0'
+    </select>
+    
+    <!-- 供应列表筛选 -->
+    <select id="SupplyScreeningList" parameterType="goodsBean" resultType="goodsBean">
+         select a.goods_id,a.goods_name,a.merchants_id,a.goods_stock,a.min_pack_num,b.goods_img
+			from tst_goods a
+			inner join tst_goods b
+			on a.goods_name = b.goods_name and b.merchants_id='1' and b.is_delete='0'
+			    
+		    where a.is_delete='0' and a.goods_state='1'
+			and a.goods_type='2' and a.merchants_id != "1"
+            <if test=' merchants_id != null and merchants_id != "" '>
+                 and a.merchants_id=#{merchants_id}
+            </if>
+            <if test=' goods_name != null and goods_name != "" '>
+                 and a.goods_name=#{goods_name}
+            </if>
+            <if test="goods_uuid!=null and goods_uuid!=''">
+                and b.goods_parent_uuid like CONCAT('%',#{goods_uuid},'%')
+            </if>
+		order by a.create_time
+    </select>
+    
+    <!-- 相关供应消息 -->
+    <select id="relatedSupplyMessage" parameterType="goodsBean" resultType="goodsBean">
+         select a.goods_id,a.goods_name,a.merchants_id,a.replace_name,b.goods_img 
+         from tst_goods a
+			left join tst_goods b
+			on a.goods_name = b.goods_name and b.merchants_id='1'
+			and b.is_delete='0' and b.goods_type='2'
+			where a.merchants_id=#{merchants_id} 
+			and a.is_delete='0' and a.goods_state='1'
+			order by a.create_time desc
+    </select>
+    
+</mapper>
