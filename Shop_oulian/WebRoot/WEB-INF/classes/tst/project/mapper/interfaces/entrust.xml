@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tst.project.dao.interfaces.EntrustDao">
+
+	<!-- 添加委托信息详情 -->
+	<insert id="addEntrustDateil" parameterType="entrustBean">
+	    insert into tst_entrust(entrust_number,goods_name,goods_num,min_buy_num,min_pack_num,target_unit_price,
+	    data_categories,end_time,give_time)
+	    values(#{entrust_number},#{goods_name},#{goods_num},#{min_buy_num},#{min_pack_num},#{target_unit_price},#{data_categories}
+	    ,#{end_time},#{give_time})
+	</insert>
+	
+	<!-- 根据委托订单号查询委托详情信息 -->
+	<select id="getEntrustDateilByNumber" parameterType="entrustBean" resultType="entrustBean">
+	    select * from tst_entrust where entrust_number=#{entrust_number} and is_delete='0'
+	</select>
+	
+</mapper>

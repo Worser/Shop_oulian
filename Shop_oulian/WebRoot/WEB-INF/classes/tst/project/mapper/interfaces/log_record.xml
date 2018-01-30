@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tst.project.dao.interfaces.LogRecordDao">
+	<!-- 修改记录 -->
+	<update id='updateLogRecords' parameterType="goodsBean"> 
+			update tst_log_record as a
+		inner join tst_goods as b 
+		on a.record_name=b.goods_name 
+		and b.is_delete='0' and (b.merchants_id=#{merchants_id} )
+		set a.goods_id=b.goods_id
+		where a.record_no=#{goods_no}
+	</update>
+
+     <!-- 添加记录 -->
+     <insert id="addLogRecord" parameterType="logRecordBean">
+         insert into tst_log_record(member_id,merchants_id,record_name,record_type,is_delete,create_time,record_stock,
+         record_min_buy_num,record_min_pack_num,record_unit_price,record_no,record_data_categories,record_give_time)
+         values(#{member_id},#{merchants_id},#{record_name},#{record_type},0,NOW(),#{record_stock},#{record_min_buy_num},
+         #{record_min_pack_num},#{record_unit_price},#{record_no},#{record_data_categories},#{record_give_time})
+     </insert>
+     
+     <insert id="addLogRecords" parameterType="java.util.List">
+     	insert into tst_log_record(member_id,merchants_id,record_name,record_type,record_stock,
+     	record_min_buy_num,record_min_pack_num,record_unit_price,record_no,record_data_categories,record_give_time)
+     	values
+     	<foreach collection="list" item="item" index="index" separator="," >
+	    (#{item.member_id},#{item.merchants_id},#{item.goods_name},'no_supply_goods',#{item.goods_stock},
+     		#{item.min_buy_num},#{item.min_pack_num},#{item.goods_unit_price},
+     		#{item.goods_no},#{item.data_categories},#{item.give_time})
+    	</foreach>
+     </insert> 
+     
+     <!-- 删除平台有的型号 -->
+     <update id="deleteHaveGoodsName">
+        update tst_log_record set is_delete='1'
+			where record_name in (
+			select goods_name from tst_goods where merchants_id='1' and goods_type='2' and is_delete='0'
+		)
+     </update>
+     
+</mapper>

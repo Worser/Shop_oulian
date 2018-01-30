@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tst.project.dao.controller.MemberQualificationDaoC">
+
+    <!-- 查询用户资质认证 （全部）-->
+	<select id="getMemberQualification" parameterType="memberQualificationBean" resultType="memberQualificationBean">
+	    select * from tst_member_qualification 
+	    where 
+	    <if test="company_name!=null and company_name!=''">
+	        company_name like concat('%',#{company_name},'%') and
+	    </if>
+	    qualification_state='wait_audit'
+	    and is_delete='0'
+	    
+	    order by create_time desc
+	</select>
+	
+	<!-- 查询用户资质认证（单个） -->
+	<select id="getMemberQualificationById" parameterType="memberQualificationBean" resultType="memberQualificationBean">
+	    select * from tst_member_qualification 
+	    where member_id=#{member_id}
+	    and is_delete='0' 
+	    limit 0,1
+	</select>
+	
+	<!-- 查询用户资质认证（批量） -->
+	<select id="getMemberQualificationBeans" parameterType="memberQualificationBean" resultType="memberQualificationBean">
+	    select * from tst_member_qualification 
+	    where find_in_set(member_qualification_id,#{member_qualification_ids}) and
+	    is_delete='0'
+	</select>
+	
+	<!-- 修改资质认证状态 -->
+	<update id="updateQualificationState" parameterType="memberQualificationBean">
+	     update tst_member_qualification
+	     set create_time=now()
+           <if test="qualification_state!= null and qualification_state!=''">
+              ,qualification_state=#{qualification_state}
+           </if>
+	     where member_qualification_id=#{member_qualification_id}
+	</update>
+	
+	<!-- 批量修改资质认证状态 -->
+	<update id="batchUpdateQualificationState" parameterType="memberQualificationBean">
+	     update tst_member_qualification
+	     <set>
+           <if test="qualification_state!= null and qualification_state!=''">
+              qualification_state=#{qualification_state},
+           </if>
+	     </set>
+	     where find_in_set(member_qualification_id,#{member_qualification_ids})
+	</update>
+	
+	<!-- 资质认证通过后，会员就是就是认证会员 -->
+	<update id="updateMemberQualificationState" parameterType="memberBean">
+	     update tst_member set is_certification_vip='1'
+	     where member_id=#{member_id}
+	</update>
+	
+</mapper>
