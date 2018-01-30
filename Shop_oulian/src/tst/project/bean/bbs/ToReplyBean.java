@@ -1,5 +1,9 @@
 package tst.project.bean.bbs;
-
+/**
+ * 回复
+ * @author xiesh
+ *
+ */
 public class ToReplyBean {
 	private int reply_id;
 	private int to_reply_id;
