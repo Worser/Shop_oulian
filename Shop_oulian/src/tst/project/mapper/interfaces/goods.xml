@@ -272,9 +272,7 @@
 	</select>
 	
 	<select id="getHotSearchs" parameterType="hotSearchBean" resultType="hotSearchBean">
-		select * from tst_hot_search
-		where is_delete='0' and search_type=#{search_type}
-		order by is_fixed DESC ,search_count desc
+		SELECT search_name from tst_hot_search  order by search_count DESC limit 0,5
 	</select>
 	
 	<update id="updateHotSearch" parameterType="hotSearchBean">

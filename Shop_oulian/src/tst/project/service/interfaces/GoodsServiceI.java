@@ -287,12 +287,12 @@ public class GoodsServiceI {
 	}
 	
 	/**
-	 * 获得搜热列表
+	 * 获得热搜
 	 * 
 	 * @return
 	 */
-	public List<SearchBean> getHotSearchs(SearchBean searchBean, PageBean pageBean) {
-		return goodsDaoI.getHotSearchs(searchBean, pageBean);
+	public List<SearchBean> getHotSearchs(SearchBean searchBean) {
+		return goodsDaoI.getHotSearchs(searchBean);
 	}
 
 	/**

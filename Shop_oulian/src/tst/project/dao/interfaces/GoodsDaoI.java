@@ -130,10 +130,10 @@ public interface GoodsDaoI {
 	public List<GoodsBean> getGoodsBrands(GoodsBean goodsBean,PageBean pageBean);
 	
 	/**
-	 * 获得搜热列表
+	 * 获得热搜列表
 	 * @return
 	 */
-	public List<SearchBean> getHotSearchs(SearchBean searchBean,PageBean pageBean);
+	public List<SearchBean> getHotSearchs(SearchBean searchBean);
 	
 	
 	/**

@@ -182,17 +182,17 @@ public class GoodsInterfaces extends BaseController {
 	
 	
 	/**
-	 * 获得搜热列表
+	 * 获得热搜列表
 	 * 
 	 * @param request
 	 * @param response
 	 * @throws Exception
 	 */
 	@RequestMapping(params = "getHotSearchs", method = RequestMethod.POST)
-	public void getHotSearchs(SearchBean searchBean, PageBean pageBean, HttpServletRequest request,
+	public void getHotSearchs(SearchBean searchBean, HttpServletRequest request,
 			HttpServletResponse response) throws Exception {
 
-		WriteObject(response, goodsServiceI.getHotSearchs(searchBean, pageBean),pageBean.getTotal());
+		WriteObject(response, goodsServiceI.getHotSearchs(searchBean));
 	}
 
 	/**
